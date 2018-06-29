@@ -108,7 +108,11 @@ def match_key(soup, Company):
                 for i in seg:
                     word.append(i.word)
                     part.append(i.flag)
-                partya.append(part_join(word.copy(), part.copy()))
+                join_company = part_join(word.copy(), part.copy())
+                if re.search('招标', join_company):
+                    partya.append('')
+                else:
+                    partya.append(join_company)
             else:
                 dic_company = dict()
                 for i in range(len(company_split)):
@@ -123,9 +127,12 @@ def match_key(soup, Company):
                     partya.append('')
                 else:
                     for key in dic_company:
-                        if len(key) < 6:
+                        if len(key) < 6 or re.search('招标', key):
                             dic_company[key] = 0
-                    partya.append(max(dic_company, key=dic_company.get))                                
+                    if max(zip(dic_company.values(), dic_company.keys()))[0] == 0:
+                        partya.append('')
+                    else:
+                        partya.append(max(dic_company, key=dic_company.get))                                
         return(zip(refine_partya_key(partya), refine_partyb_key(partyb), refine_partyb_key(combo))) 
     return(zip(refine_partya_key(partya), refine_partyb_key(partyb), refine_partyb_key(combo)))
 

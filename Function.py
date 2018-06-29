@@ -54,9 +54,12 @@ def find_partya(content):
     elif reg_two and re.search('招标', reg_two.group(5)) is None:
         if re.search('(收到|接到|获|获得|中标|参与)(了)?(由)?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content):
             raw = re.search('(收到|接到|获|获得|中标|参与)(了)?(由)?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content)
+            if re.search('招标', reg_two.group(5)):
+                # 246185的特殊情况
+                raw = re.search('(收到|接到|获|获得|中标|参与)(了)?(由)?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人)?([\w|\(|\)|（|）|\-|\.]+?)(局|院|馆|委员会|集团|室|部|中心|银行)', content)
         else:
             raw = re.search('(收到|接到|获|获得|中标|参与)(了)?(由)?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人)?([\w|\(|\)|（|）|\-|\.]+?)(局|院|馆|委员会|集团|室|部|中心|银行)', content)
-        partya_raw = raw.group(5) + raw.group(6)
+        partya_raw = re.sub('项目为', '', raw.group(5) + raw.group(6))
         return(re.sub('甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人','',partya_raw))
     elif reg_three or reg_four:
         if reg_three:
@@ -87,7 +90,8 @@ def find_partyb(full_name, content):
             if full_name in partyb_raw.group() or len(partyb_raw.group(1) + partyb_raw.group(2)) < 6:
                 lb.append(full_name)
             else:
-                lb.append(partyb_raw.group(1) + partyb_raw.group(2))
+                result = re.sub('\w+子公司', '', partyb_raw.group(1) + partyb_raw.group(2))
+                lb.append(result)
         elif reg_two and re.search('和|与|合同',reg_two.group()) is None:
             if  re.search('(乙方|承包人|承包方|卖方|中标人)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content):
                 partyb_raw = re.search('(乙方|承包人|承包方|卖方|中标人)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content)
