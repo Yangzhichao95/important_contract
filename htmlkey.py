@@ -15,6 +15,8 @@ import jieba.posseg
 import csv
 import json
 
+# suibianjiayihang
+
 def bottom_up_dp_lcs(str_a, str_b):
   """
   longest common substring of str_a and str_b
