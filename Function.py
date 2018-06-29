@@ -88,7 +88,7 @@ def find_partyb(full_name, content):
                 lb.append(full_name)
             else:
                 lb.append(partyb_raw.group(1) + partyb_raw.group(2))
-        elif reg_two and re.search('和|与',reg_two.group()) is None:
+        elif reg_two and re.search('和|与|合同',reg_two.group()) is None:
             if  re.search('(乙方|承包人|承包方|卖方|中标人)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content):
                 partyb_raw = re.search('(乙方|承包人|承包方|卖方|中标人)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content)
             else:
@@ -121,6 +121,9 @@ def refine_partya_key(partya):
         if re.search('与', partya[i]):
             j = partya[i]
             partya[i] = partya[i][(j.index('与')+1):]
+        if re.search('的', partya[i]):
+            j = partya[i]
+            partya[i] = partya[i][(j.index('的')+1):]
     partya = [re.sub('\-', '', x) for x in partya]
     partya = [re.sub('（', '(', x) for x in partya]
     partya = [re.sub('）', ')', x) for x in partya]

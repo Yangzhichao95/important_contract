@@ -24,8 +24,8 @@ def match_key(soup, Company):
     soupcontent = re.sub('<.+>|\n|\s', '', str(soup))
     soupcontent = re.sub('<.+?>', '', soupcontent)
     ## 找出公司全称
-    if re.search('([\d|\s]+)?([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:100])):
-        name = re.search('([\d|\s]+)?([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:100])).group(2)
+    if re.search('([\d|\s]+)?([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])):
+        name = re.search('([\d|\s]+)?([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])).group(2)
         if name[0] == '一' or name[0] == '号':
             # 因格式问题造成的在开头或结尾可能多出一个一
             full_name = name[1:]
@@ -33,8 +33,8 @@ def match_key(soup, Company):
             full_name = name[1:(len(name)-1)]
         else:
             full_name = name
-    elif re.search('(简称|名称)(:|：)?([\w|*]+?)(公告|编号|编码|\(|\)|股票代码|证券代码)', soupcontent[0:100]):
-        name = re.search('(简称|名称)(:|：)?([\w|*]+?)(公告|编号|编码|\(|\)|股票代码|证券代码)', soupcontent[0:100]).group(3)
+    elif re.search('(简称|名称)(:|：)?([\w|*]+?)(公告|编号|编码|\(|\)|股票代码|证券代码)', soupcontent[0:120]):
+        name = re.search('(简称|名称)(:|：)?([\w|*]+?)(公告|编号|编码|\(|\)|股票代码|证券代码)', soupcontent[0:120]).group(3)
         full_name = search_company(name, Company)
     else:
         full_name = search_company(div_0.get('title')[0:4], Company)
@@ -54,7 +54,7 @@ def match_key(soup, Company):
     combo = []
     # 先找乙方关键词
     # 甲方结尾可为(公司|局|院|馆|委员会|集团|室|部|中心|银行|[A-Za-z|\-]+)
-    soupcontent = re.sub('本公司|我公司|占公司|对公司|影响公司|为公司|项目公司|后公司|提升公司', '', soupcontent)
+    soupcontent = re.sub('本公司|我公司|占公司|对公司|是公司|影响公司|为公司|项目公司|后公司|提升公司', '', soupcontent)
     lb = find_partyb(full_name, soupcontent)
     soupcontent = re.sub('控股子公司|子公司', '', soupcontent)
     if len(lb) <= 1:
@@ -79,72 +79,51 @@ def match_key(soup, Company):
                     combo_raw = [x for x in combo_raw if len(x) > 5]
                     combo.append('、'.join(combo_raw))
                     break
-            # 找到联合体后在相同的段落里找甲方
-            if combo[0] == '':
-                # 如果没有匹配到联合体，则从全文中找甲方
-                content_split = [soupcontent]
-            else:
-                content_split = re.split('\n', soupcontent)
-                content_split = [x for x in content_split if len(x) > 0]
-                # 对content加一些转义字符
-            content = re.sub('\(', '\(', content)
-            content = re.sub('\)', '\)', content)
-            content = re.sub('\-', '\-', content)
-            content = re.sub('\*', '\*', content)
-            content = re.sub('\[', '\[', content)
-            content = re.sub('\]', '\]', content)
-            for content_ in content_split:               
-                if re.search(content, content_):
-                    result_a = find_partya(content_)
-                    if result_a is not None:
-                        partya.append(result_a)
-                    else:
-                        partya.append('')
-                    return(zip(refine_partya_key(partya), refine_partyb_key(partyb), refine_partyb_key(combo)))
-            partya.append('')
-            return(zip(refine_partya_key(partya), refine_partyb_key(partyb), refine_partyb_key(combo)))
-        else:
+        if len(combo) == 0:
             combo.append('')
-            pat_temp = partyb[0] + '|' + full_name
-            pat_temp = re.sub('\(', '\(', pat_temp)
-            pat_temp = re.sub('\)', '\)', pat_temp)
-            soupcontent = re.sub(pat_temp, '', soupcontent)
-            #不存在联合体，直接寻找甲方
-            result_a = find_partya(soupcontent)
-            if result_a is not None:
-                partya.append(result_a)
+        pat_temp = partyb[0] + '|' + full_name + re.sub('、', '|', combo[0])
+        pat_temp = re.sub('\(', '\(', pat_temp)
+        pat_temp = re.sub('\)', '\)', pat_temp)
+        soupcontent = re.sub(pat_temp, '', soupcontent)
+        #寻找甲方
+        result_a = find_partya(soupcontent)
+        if result_a is not None:
+            partya.append(result_a)
+        else:
+            content_split = re.split('\n|,', soupcontent)
+            #content_split = [re.sub(pat_temp, '', x) for x in content_split if len(x) > 0]
+            content_split = [x for x in content_split if len(x) > 0]
+            content_split = [x for x in content_split if re.search('([\w|\(|\)|（|）]+)(公司|局|院|馆|委员会|集团|室|部|中心|银行)', x)]
+            company_split = [re.search('([\w|\(|\)|（|）]+)(公司|局|院|馆|委员会|集团|室|部|中心|银行)', x).group() for x in content_split]
+            if len(company_split) == 1 and len(company_split[0]) < 6:
+                partya.append('')
+            elif len(company_split) == 1:
+                partya_raw = company_split[0]
+                seg = jieba.posseg.cut(partya_raw)
+                word = []
+                part = []
+                for i in seg:
+                    word.append(i.word)
+                    part.append(i.flag)
+                partya.append(part_join(word.copy(), part.copy()))
             else:
-                content_split = re.split('\n|,', soupcontent)
-                #content_split = [re.sub(pat_temp, '', x) for x in content_split if len(x) > 0]
-                content_split = [x for x in content_split if len(x) > 0]
-                content_split = [x for x in content_split if re.search('([\w|\(|\)|（|）]+)(公司|局|院|馆|委员会|集团|室|部|中心|银行)', x)]
-                company_split = [re.search('([\w|\(|\)|（|）]+)(公司|局|院|馆|委员会|集团|室|部|中心|银行)', x).group() for x in content_split]
-                if len(company_split) == 1 and len(company_split[0]) < 6:
+                dic_company = dict()
+                for i in range(len(company_split)):
+                    for j in range(i,len(company_split)):
+                        sub_result = bottom_up_dp_lcs(company_split[i], company_split[j])
+                        if re.search('公司|局|院|馆|委员会|集团|室|部|中心|银行', sub_result):
+                            if sub_result in dic_company:
+                                dic_company[sub_result] = dic_company[sub_result] + 1
+                            else:
+                                dic_company[sub_result] = 1
+                if len(dic_company) == 0:
                     partya.append('')
-                elif len(company_split) == 1:
-                    partya_raw = company_split[0]
-                    seg = jieba.posseg.cut(partya_raw)
-                    word = []
-                    part = []
-                    for i in seg:
-                        word.append(i.word)
-                        part.append(i.flag)
-                    partya.append(part_join(word.copy(), part.copy()))
                 else:
-                    dic_company = dict()
-                    for i in range(len(company_split)):
-                        for j in range(i,len(company_split)):
-                            sub_result = bottom_up_dp_lcs(company_split[i], company_split[j])
-                            if re.search('公司|局|院|馆|委员会|集团|室|部|中心|银行', sub_result):
-                                if sub_result in dic_company:
-                                    dic_company[sub_result] = dic_company[sub_result] + 1
-                                else:
-                                    dic_company[sub_result] = 1
-                    if len(dic_company) == 0 or len(max(dic_company)) < 6:
-                        partya.append('')
-                    else:
-                        partya.append(max(dic_company))                                
-            return(zip(refine_partya_key(partya), refine_partyb_key(partyb), refine_partyb_key(combo))) 
+                    for key in dic_company:
+                        if len(key) < 6:
+                            dic_company[key] = 0
+                    partya.append(max(dic_company, key=dic_company.get))                                
+        return(zip(refine_partya_key(partya), refine_partyb_key(partyb), refine_partyb_key(combo))) 
     return(zip(refine_partya_key(partya), refine_partyb_key(partyb), refine_partyb_key(combo)))
 
 
