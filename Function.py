@@ -179,6 +179,8 @@ def refine_partyb_key(partyb):
     partyb = [re.sub('（', '(', x) for x in partyb]
     partyb = [re.sub('）', ')', x) for x in partyb]
     partyb = [re.sub('\(.*\)', '', x) for x in partyb]
+    # For some case
+    partyb = [re.sub('\)', '', x) for x in partyb]
     return (partyb)
 
       
@@ -186,7 +188,7 @@ def tiejian_key(soup):
     # 只匹配中国铁建
     soupcontent = re.sub('<.+>|\n|\s', '', str(soup))
     soupcontent = re.sub('<.+?>', '', soupcontent)
-    content_split = re.split('一、|二、|三、|四、|五、|六、|七、|八、|九、|十、|\d、|\d.本公司', soupcontent)
+    content_split = re.split('一、|二、|三、|四、|五、|六、|七、|八、|九、|十、|\d、本|\d.本公司', soupcontent)
     if type(content_split) is list:
         content_split.pop(0)
     pat_partya = '公司收到(.+?)(发出的)?中标通知书'

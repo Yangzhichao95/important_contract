@@ -57,7 +57,7 @@ def match_key(soup, Company):
     combo = []
     # 先找乙方关键词
     # 甲方结尾可为(公司|局|院|馆|委员会|集团|室|部|中心|银行|[A-Za-z|\-]+)
-    soupcontent = re.sub('本公司|我公司|占公司|对公司|是公司|影响公司|为公司|项目公司|后公司|提升公司|上述公司', '', soupcontent)
+    soupcontent = re.sub('本公司|我公司|占公司|对公司|是公司|影响公司|为公司|项目公司|后公司|提升公司|上述公司|及公司', '', soupcontent)
     lb = find_partyb(full_name, soupcontent)
     soupcontent = re.sub('控股子公司|子公司', '', soupcontent)
     if len(lb) <= 1:
@@ -84,7 +84,7 @@ def match_key(soup, Company):
                     break
         if len(combo) == 0:
             combo.append('')
-        pat_temp = partyb[0] + '|' + full_name + re.sub('、', '|', combo[0])
+        pat_temp = partyb[0] + '|' + full_name + '|' + re.sub('、', '|', combo[0])
         pat_temp = re.sub('\(', '\(', pat_temp)
         pat_temp = re.sub('\)', '\)', pat_temp)
         soupcontent = re.sub(pat_temp, '', soupcontent)
