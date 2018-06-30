@@ -89,7 +89,7 @@ def match_key(soup, Company):
         pat_temp = re.sub('\)', '\)', pat_temp)
         soupcontent = re.sub(pat_temp, '', soupcontent)
         #寻找甲方
-        result_a = find_partya(soupcontent)
+        result_a = find_partya(soupcontent, div)
         if result_a is not None:
             partya.append(result_a)
         else:
