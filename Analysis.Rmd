@@ -116,7 +116,7 @@ for(i in 1 : nrow(hetong_train)){
   vector_train <- c(vector_train, tolower(paste(hetong_train[i,c(1,2,3)],collapse = '')))
 }
 for(i in 1 : nrow(hetong_trainresult)){
-  vector_trainresult <- c(vector_trainresult, tolower(paste(hetong_trainresult[i,c(1,2,3 )],collapse = '')))
+  vector_trainresult <- c(vector_trainresult, tolower(paste(hetong_trainresult[i,c(1,2,3)],collapse = '')))
 }
 
 
