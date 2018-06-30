@@ -58,9 +58,11 @@ def find_partya(content, div):
                     if i.get('title')[(loc+1):] != '':
                         return (i.get('title')[(loc+1):])
                 divcontent = i.get_text()
-                divcontent = re.sub('\n|\s', '', divcontent)
-                if len(divcontent) > 0 and re.search('，|。|：', divcontent) is None:
-                    return (divcontent)
+                divcontent = re.sub('\n | ', '', divcontent)
+                divcontent_split = re.split('\n', divcontent)
+                divcontent_split = [x for x in divcontent_split if len(x) > 0]
+                if len(divcontent_split) == 1 and re.search('，|。|、', divcontent_split[0]) is None:
+                    return (divcontent_split[0])
     #
     reg_one = re.search('(和|与)([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|集团|室|部|中心|银行|管理处|人民政府)([\w|“|”|\n|（|）]*?)(签订|签署)', content)
     reg_two = re.search('(收到|接到|获|获得|中标|参与)(了)?(由)?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位)?([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|集团|室|部|中心|银行|处|人民政府)', content)
