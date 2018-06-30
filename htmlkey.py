@@ -46,8 +46,8 @@ def match_key(soup, Company):
         key = tiejian_key(soup)
         if type(key) is zip:
             return(key)
-    if full_name[0:4] == '中国北车':
-        key = beiche_key(soup)
+    if full_name[0:4] == '中国北车' or full_name[0:4] == '中国中车' or full_name[0:4] == '中国南车':
+        key = beiche_key(soup, full_name)
         if type(key) is zip:
             return(key)
     soupcontent = re.sub('<.+>|\n | ', '', str(soup))

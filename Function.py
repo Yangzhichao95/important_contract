@@ -186,7 +186,7 @@ def tiejian_key(soup):
     # 只匹配中国铁建
     soupcontent = re.sub('<.+>|\n|\s', '', str(soup))
     soupcontent = re.sub('<.+?>', '', soupcontent)
-    content_split = re.split('一、|二、|三、|四、|五、|六、|七、|八、|九、|十、|\d、', soupcontent)
+    content_split = re.split('一、|二、|三、|四、|五、|六、|七、|八、|九、|十、|\d、|\d.本公司', soupcontent)
     if type(content_split) is list:
         content_split.pop(0)
     pat_partya = '公司收到(.+?)(发出的)?中标通知书'
@@ -203,8 +203,9 @@ def tiejian_key(soup):
         ob_b = [x[1] + x[2] for x in ob_b]
         ob_b = [x for x in ob_b if len(x) > 5]
         if len(ob_b) == 0:
-            continue
-        ob_partyb.append(ob_b[0])
+            ob_partyb.append('中国铁建股份有限公司')
+        else:
+            ob_partyb.append(ob_b[0])
         ob_combo.append('、'.join(ob_b[1:]))
     if len(ob_partyb) == 0:
         return('') 
@@ -214,11 +215,11 @@ def tiejian_key(soup):
         ob_combo = refine_partyb_key(ob_combo)
         return(zip(ob_partya, ob_partyb, ob_combo))
         
-def beiche_key(soup):
-    # 只匹配中国北车
+def beiche_key(soup, fullname):
+    # 只匹配中国北车、中国中车、中国南车
     soupcontent = re.sub('<.+>|\n|\s', '', str(soup))
     soupcontent = re.sub('<.+?>', '', soupcontent)
-    content_split = re.split('\d、', soupcontent)
+    content_split = re.split('\d、|\d.本公司', soupcontent)
     if type(content_split) is list:
         content_split.pop(0)
     pat_partya = '与(.+?)签订了'
@@ -235,8 +236,9 @@ def beiche_key(soup):
         ob_b = [x[1] + x[2] for x in ob_b]
         ob_b = [x for x in ob_b if len(x) > 5]
         if len(ob_b) == 0:
-            continue
-        ob_partyb.append(ob_b[0])
+            ob_partyb.append(fullname)
+        else:
+            ob_partyb.append(ob_b[0])
         ob_combo.append('、'.join(ob_b[1:]))
         # 乙对多个甲
         if re.search('分别', ob_partya[len(ob_partya)-1]):
@@ -255,7 +257,7 @@ def beiche_key(soup):
         ob_partyb = refine_partyb_key(ob_partyb)
         ob_combo = refine_partyb_key(ob_combo)
         return(zip(ob_partya, ob_partyb, ob_combo))
-        
+
 def part_join(word, part):
     # Join the word according to the part
     part.reverse()
