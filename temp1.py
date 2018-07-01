@@ -5,6 +5,7 @@ Created on Tue Jun 26 14:42:44 2018
 @author: 25008
 """
 
+
 import re
 import os
 import time
@@ -15,7 +16,6 @@ import jieba.posseg
 import csv
 import json
 from Function import *
-
 
 def match_key(soup, Company):
     full_name = find_full_name(soup, Company)
@@ -118,48 +118,24 @@ def match_key(soup, Company):
 
 
 def execute():
-    file = open('D:/Tianchi/data/round1_train_20180518/重大合同/hetong.train', 'r', encoding = 'utf-8-sig')
-    hetong_train = csv.reader(file, delimiter = '\t')
-    hetong_train = list(hetong_train)
-    file.close()
-    hetong_train = pd.DataFrame(hetong_train, columns = ['公告id','甲方','乙方','项目名称','合同名称','合同金额上限','合同金额下限','联合体成员'])
     f = open('D:/Tianchi/data/FDDC_announcements_company_name_20180531.json','r',encoding="utf-8")
     Company = json.load(f)
-    df = pd.DataFrame(columns = ['公告id', '甲方', '乙方', '联合体成员'])
     path = 'D:/Tianchi/data/round1_train_20180518/重大合同/html/'
-    i = 0
-    lst = []
-    #lst_int = []
-    for i in os.listdir(path):
-        #lst_int.append(int(i.replace('.html', '')))
-        lst.append(i)
-    #df['公告id'] = lst_int
-    ggid = []
-    partya_all = []
-    partyb_all = []
-    combo_all = []
-    for filename in lst:
-        htmlf = open(path + filename, 'r', encoding = 'utf-8')
-        htmlcont = htmlf.read()
-        htmlf.close()
-        soup = BeautifulSoup(htmlcont,'lxml')
-        print(filename)
-        partya_partyb_combo = match_key(soup, Company)
-        for j in partya_partyb_combo:
-            ggid.append(int(filename.replace('.html', '')))
-            partya_all.append(j[0])
-            partyb_all.append(j[1])
-            combo_all.append(j[2])
-            #print(j)
-            #time.sleep(0.1)
-    df['公告id'] = ggid
-    df['甲方'] = partya_all
-    df['乙方'] = partyb_all
-    df['联合体成员'] = combo_all
-    writer = pd.ExcelWriter('Save_key.xlsx')
-    df.to_excel(writer, 'page_1', float_format = '%.5f', index = False,
-                header = False, encoding = 'utf-8')
-    writer.save()
+    filename = '81821.html'
+    htmlf = open(path + filename, 'r', encoding = 'utf-8')
+    htmlcont = htmlf.read()
+    htmlf.close()
+    soup = BeautifulSoup(htmlcont,'lxml')
+    print(filename)
+    partya_partyb_combo = match_key(soup, Company)
+    soupcontent = re.sub('<.+>|\n | ', '', str(soup))
+    soupcontent = re.sub('<.+?>', '', soupcontent)
+    soupcontent = re.sub('本公司|我公司|占公司|对公司|是公司|影响公司|为公司|项目公司|后公司|提升公司|上述公司', '', soupcontent)
+    content = soupcontent
+    div = soup.findAll('div')
+    for i in partya_partyb_combo:
+        print(i)
+
     
 
 if __name__ == '__main__':

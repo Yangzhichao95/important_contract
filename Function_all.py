@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jun 29 10:22:20 2018
+Created on Sun Jul  1 09:47:14 2018
 
 @author: 25008
 """
@@ -48,34 +48,6 @@ def search_company(name, Company):
             if name.upper()[0:4] in i['secShortNameChg']:
                 return(i['secFullName'])
     return(name)
-
-def find_full_name(soup, Company):
-    div = soup.findAll('div')
-    div_0 = div[0]
-    title = re.sub('\*', '\*', div_0.get('title'))
-    soupcontent = re.sub('<.+>|\n|\s', '', str(soup))
-    soupcontent = re.sub('<.+?>', '', soupcontent)
-    ## 找出公司全称
-    if re.search('(\d+)?([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])):
-        if re.search('号([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])):
-            name = re.search('号([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])).group(1)
-        else:
-            name = re.search('(\d+)?([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])).group(2)
-        if name[0] == '一' or name[0] == '号':
-            # 因格式问题造成的在开头或结尾可能多出一个一
-            full_name = name[1:]
-        elif name[len(name)-1] == '一':
-            full_name = name[1:(len(name)-1)]
-        else:
-            full_name = name
-    elif re.search('(简称|名称)(:|：)?([\w|*]+?)(公告|编号|编码|\(|\)|股票代码|证券代码)', soupcontent[0:120]):
-        name = re.search('(简称|名称)(:|：)?([\w|*]+?)(公告|编号|编码|\(|\)|股票代码|证券代码)', soupcontent[0:120]).group(3)
-        full_name = search_company(name, Company)
-    else:
-        full_name = search_company(div_0.get('title')[0:4], Company)
-    return (full_name)
-    
-
 def find_partya(content, div):
     # 首先对于小标题只在html title里的情况
     for i in div[1:]:
@@ -182,37 +154,6 @@ def find_partyb(full_name, content):
             _ = [lb.append(x) for x in list(set(lb_refine))]
     return (lb)
 
-    
-
-def refine_partya_key(partya):
-    # refine the output
-    for i in range(len(partya)):
-        if re.search('是', partya[i]):
-            j = partya[i]
-            partya[i] = partya[i][(j.index('是')+1):]
-        if re.search('与', partya[i]):
-            j = partya[i]
-            partya[i] = partya[i][(j.index('与')+1):]
-        if re.search('的', partya[i]):
-            j = partya[i]
-            partya[i] = partya[i][(j.index('的')+1):]
-    partya = [re.sub('\-', '', x) for x in partya]
-    partya = [re.sub('（', '(', x) for x in partya]
-    partya = [re.sub('）', ')', x) for x in partya]
-    for i in range(len(partya)):
-        if len(partya[i]) < 6:
-            partya[i] = ''
-    return (partya)
-def refine_partyb_key(partyb):
-    # refine the output
-    # 去掉乙方及联合体中的括号
-    partyb = [re.sub('（', '(', x) for x in partyb]
-    partyb = [re.sub('）', ')', x) for x in partyb]
-    partyb = [re.sub('\(.*\)', '', x) for x in partyb]
-    # For some case
-    partyb = [re.sub('\)', '', x) for x in partyb]
-    return (partyb)
-
       
 def tiejian_key(soup):
     # 只匹配中国铁建
@@ -307,4 +248,166 @@ def part_join(word, part):
     new_word.reverse()
     word = ''.join(new_word)
     return word
+
+def refine_partya_key(partya):
+    for i in range(len(partya)):
+        if re.search('是', partya[i]):
+            j = partya[i]
+            partya[i] = partya[i][(j.index('是')+1):]
+        if re.search('与', partya[i]):
+            j = partya[i]
+            partya[i] = partya[i][(j.index('与')+1):]
+        if re.search('的', partya[i]):
+            j = partya[i]
+            partya[i] = partya[i][(j.index('的')+1):]
+    partya = [re.sub('\-', '', x) for x in partya]
+    #partya = [re.sub('（', '(', x) for x in partya]
+    #partya = [re.sub('）', ')', x) for x in partya]
+    for i in range(len(partya)):
+        if len(partya[i]) < 6:
+            partya[i] = ''
+    return (partya)
+
+def refine_output_partya(partya):
+    partya = [re.sub('（', '(', x) for x in partya]
+    partya = [re.sub('）', ')', x) for x in partya]
+    return (partya)
+
+
+def refine_partyb_key(partyb):
+    # 去掉乙方及联合体中的括号
+    # partyb = [re.sub('（', '(', x) for x in partyb]
+    # partyb = [re.sub('）', ')', x) for x in partyb]
+    # partyb = [re.sub('\(.*\)', '', x) for x in partyb]
+    # For some case
+    partyb = [re.sub('\)|）', '', x) for x in partyb]
+    return (partyb)
+
+def refine_output_partyb(partyb):
+    partyb = [re.sub('（', '(', x) for x in partyb]
+    partyb = [re.sub('）', ')', x) for x in partyb]
+    partyb = [re.sub('\(.*\)', '', x) for x in partyb]
+    return (partyb)
+
+
+
+def match_key(soup, Company):
+    div = soup.findAll('div')
+    div_0 = div[0]
+    title = re.sub('\*', '\*', div_0.get('title'))
+    soupcontent = re.sub('<.+>|\n|\s', '', str(soup))
+    soupcontent = re.sub('<.+?>', '', soupcontent)
+    ## 找出公司全称
+    if re.search('(\d+)?([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])):
+        if re.search('号([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])):
+            name = re.search('号([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])).group(1)
+        else:
+            name = re.search('(\d+)?([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])).group(2)
+        if name[0] == '一' or name[0] == '号':
+            # 因格式问题造成的在开头或结尾可能多出一个一
+            full_name = name[1:]
+        elif name[len(name)-1] == '一':
+            full_name = name[1:(len(name)-1)]
+        else:
+            full_name = name
+    elif re.search('(简称|名称)(:|：)?([\w|*]+?)(公告|编号|编码|\(|\)|股票代码|证券代码)', soupcontent[0:120]):
+        name = re.search('(简称|名称)(:|：)?([\w|*]+?)(公告|编号|编码|\(|\)|股票代码|证券代码)', soupcontent[0:120]).group(3)
+        full_name = search_company(name, Company)
+    else:
+        full_name = search_company(div_0.get('title')[0:4], Company)
+    # 对于中国铁建和中国北车的公告
+    if full_name[0:4] == '中国铁建':
+        key = tiejian_key(soup)
+        if type(key) is zip:
+            return(key)
+    if full_name[0:4] == '中国北车' or full_name[0:4] == '中国中车' or full_name[0:4] == '中国南车':
+        key = beiche_key(soup, full_name)
+        if type(key) is zip:
+            return(key)
+    soupcontent = re.sub('<.+>|\n | ', '', str(soup))
+    soupcontent = re.sub('<.+?>', '', soupcontent)
+    partya = []
+    partyb = []
+    combo = []
+    # 先找乙方关键词
+    # 甲方结尾可为(公司|局|院|馆|委员会|集团|室|部|中心|银行|[A-Za-z|\-]+)
+    soupcontent = re.sub('本公司|我公司|占公司|对公司|是公司|影响公司|为公司|项目公司|后公司|提升公司|上述公司|及公司', '', soupcontent)
+    lb = find_partyb(full_name, soupcontent)
+    soupcontent = re.sub('控股子公司|子公司', '', soupcontent)
+    if len(lb) <= 1:
+        # 如果只有一个或者没有子公司，即一个乙方
+        if len(lb) == 0:
+            partyb.append(full_name)
+        else:
+            partyb.append(lb[0])
+        if re.search('联合体|联合中标|分别收到|丙方|共同', soupcontent):
+            # 如果联合体存在
+            content_split = re.split('\n|，|。', soupcontent)
+            content_split = [x for x in content_split if len(x) > 0]
+            for content in content_split:
+                if re.search('联合体成员：', content):
+                    combo_raw = re.search('联合体成员：([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|集团|室|部|中心|银行)', content)
+                    combo.append(combo_raw.group(1) + combo_raw.group(2))
+                    break
+                if re.search('联合体|联合中标|分别收到|丙方|共同', content):
+                    loc = content.index(re.search('联合体|联合中标|分别收到|丙方|共同', content).group())
+                    combo_raw = re.findall('(与|和|、)([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|集团|室|部|中心|银行)', content[:loc])
+                    combo_raw = [x[1] + x[2] for x in combo_raw]
+                    combo_raw = [x for x in combo_raw if len(x) > 5]
+                    combo.append('、'.join(combo_raw))
+                    break
+        if len(combo) == 0:
+            combo.append('')
+        pat_temp = partyb[0] + '|' + full_name + '|' + re.sub('、', '|', combo[0])
+        pat_temp = re.sub('\(', '\(', pat_temp)
+        pat_temp = re.sub('\)', '\)', pat_temp)
+        soupcontent = re.sub(pat_temp, '', soupcontent)
+        #寻找甲方
+        result_a = find_partya(soupcontent, div)
+        if result_a is not None:
+            partya.append(result_a)
+        else:
+            content_split = re.split('\n|,', soupcontent)
+            #content_split = [re.sub(pat_temp, '', x) for x in content_split if len(x) > 0]
+            content_split = [x for x in content_split if len(x) > 0]
+            content_split = [x for x in content_split if re.search('([\w|\(|\)|（|）]+)(公司|局|院|馆|委员会|集团|室|部|中心|银行)', x)]
+            company_split = [re.search('([\w|\(|\)|（|）]+)(公司|局|院|馆|委员会|集团|室|部|中心|银行)', x).group() for x in content_split]
+            if len(company_split) == 1 and len(company_split[0]) < 6:
+                partya.append('')
+            elif len(company_split) == 1:
+                partya_raw = company_split[0]
+                seg = jieba.posseg.cut(partya_raw)
+                word = []
+                part = []
+                for i in seg:
+                    word.append(i.word)
+                    part.append(i.flag)
+                join_company = part_join(word.copy(), part.copy())
+                if re.search('招标', join_company):
+                    partya.append('')
+                else:
+                    partya.append(join_company)
+            else:
+                # 可以对以下简称在做个搜索
+                dic_company = dict()
+                for i in range(len(company_split)):
+                    for j in range(i,len(company_split)):
+                        sub_result = bottom_up_dp_lcs(company_split[i], company_split[j])
+                        if re.search('公司|局|院|馆|委员会|集团|室|部|中心|银行', sub_result):
+                            if sub_result in dic_company:
+                                dic_company[sub_result] = dic_company[sub_result] + 1
+                            else:
+                                dic_company[sub_result] = 1
+                if len(dic_company) == 0:
+                    partya.append('')
+                else:
+                    for key in dic_company:
+                        if len(key) < 6 or re.search('招标', key):
+                            dic_company[key] = 0
+                    if max(zip(dic_company.values(), dic_company.keys()))[0] == 0:
+                        partya.append('')
+                    else:
+                        partya.append(max(dic_company, key=dic_company.get))                                
+        return(zip(refine_partya_key(partya), refine_partyb_key(partyb), refine_partyb_key(combo))) 
+    return(zip(refine_partya_key(partya), refine_partyb_key(partyb), refine_partyb_key(combo)))
 
