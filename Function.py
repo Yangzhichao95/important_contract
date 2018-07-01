@@ -275,13 +275,13 @@ def beiche_key(soup, fullname):
         # 乙对多个甲
         if re.search('分别', ob_partya[len(ob_partya)-1]):
             partya = ob_partya.pop()
+            ob_partyb.pop()
+            ob_combo.pop()
             partya = re.sub('分别', '', partya)
             partya = re.split('、|和|以及|及|', partya)
             _ = [ob_partya.append(x) for x in partya]
-            ob_partyb.append(ob_b[0])
-            ob_combo.pop()
-            ob_combo.append('')
-            ob_combo.append('')
+            _ = [ob_partyb.append(ob_b[0]) for x in partya]
+            _ = [ob_combo.append('') for x in partya]
     if len(ob_partyb) == 0:
         return('')
     else:
