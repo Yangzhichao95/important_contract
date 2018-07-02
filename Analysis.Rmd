@@ -116,8 +116,8 @@ sprintf('字段召回率：%.3f', result_project$Recall)
 sprintf('字段准确率：%.3f', result_project$Precision)
 sprintf('字段F1得分：%.3f', result_project$F1)
 
-temp <- hetong_train[hetong_train[,1] %in% result_project$Error, c(1,4)]
-temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_project$Error,c(1,4)]
+temp <- hetong_train[hetong_train[,1] %in% result_project$Error, c(1,4,5)]
+temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_project$Error,c(1,4,5)]
 temp1 <- temp1[order(temp1[,1]),]
 write.csv(file = 'project_temp.csv', temp, row.names = F)
 write.csv(file = 'project_temp1.csv', temp1, row.names = F)
