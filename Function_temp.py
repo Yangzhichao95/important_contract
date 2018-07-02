@@ -237,11 +237,6 @@ def find_contract(soup):
     section1 = str(soup.find(id = 'SectionCode_1'))
     section1 = re.sub('<.+>|\n | ', '', section1)
     section1 = re.sub('<.+>', '', section1)
-    # 1 首先在全文找关键词
-    if re.search('(签订|签署)(了)?([\w|\-|—|《|\+|×]+?)(合同|协议|合同书|协议书)', soupcontent[100:]):
-        contract = re.search('(签订|签署)(了)?([\w|\-|—|《|\+|×]+?)(合同|协议|合同书|协议书)', soupcontent[100:]).group(3) + re.search('(签订|签署)(了)?([\w|\-|—|《|\+|×]+?)(合同|协议|合同书|协议书)', soupcontent[100:]).group(4)
-        if len(contract) > 4:
-            return(contract)
     # 1.5 可以考虑在小标题里面找合同（类似甲方的方法）
     # 2 然后在section1里找是否有带有书名号的字段
     if re.findall(pat_contract, section1):
@@ -281,6 +276,13 @@ def find_contract(soup):
                     else:
                         count[i] = 1
                 return(max(count, key = count.get))
+    # 1 首先在全文找关键词
+    if re.search('(签订了|签署了)(\w+?)(合同|协议|合同书|协议书)', soupcontent):
+            contract = re.search('(签订了|签署了)(\w+?)(合同|协议|合同书|协议书)', soupcontent).group(2) + re.search('(签订了|签署了)(\w+?)(合同|协议|合同书|协议书)', soupcontent).group(3)
+            if len(contract) > 4:
+                return(contract)
+            else:
+                return('')
     return('')
 
 def find_project(soup, contract):

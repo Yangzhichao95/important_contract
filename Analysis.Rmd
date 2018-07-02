@@ -42,13 +42,28 @@ result_compute<-function(hetong_train, hetong_trainresult, column1, column2){
   recall <- corr/pos
   precision <- corr/act
   F1 <- 2*recall*precision/(recall+precision)
+  
+  #
+  vector_train <- c()
+  vector_trainresult <- c()
+  for(i in 1 : nrow(hetong_train)){
+    vector_train <- c(vector_train, tolower(paste(hetong_train[i,c(1, column1)],collapse = '')))
+  }
+  for(i in 1 : nrow(hetong_trainresult)){
+    vector_trainresult <- c(vector_trainresult, tolower(paste(hetong_trainresult[i,c(1, column2)],collapse = '')))
+  }
+  Error <- c()
+  for(i in 1 : length(vector_train)){
+    if(!(vector_train[i] %in% vector_trainresult))
+      Error <- c(Error, hetong_train[i,1])
+  }
   return(list(Possible = pos, Actual = act, Correct = corr, Recall = recall, Precision = precision, F1 = F1, Error = Error))
 }
 
 ```
 
 ```{r Read Data}
-hetong_train <- read_delim('D:/Tianchi/data/FDDC_announcements_round1_train_result_20180616/hetong.train', 
+hetong_train <- read_delim('D:/Tianchi/data/FDDC_announcements_round1_train_result_20180616/hetong1.train', 
                            delim = '\t',col_names = c('公告id','甲方','乙方','项目名称','合同名称',
                                                       '合同金额上限','合同金额下限','联合体成员'))
 hetong_train <- as.data.frame(hetong_train)
@@ -93,6 +108,7 @@ write.csv(file = 'temp1.csv', temp1, row.names = F)
 
 ```{r Calculate F1 of the project}
 result_project <- result_compute(hetong_train, hetong_trainresult, column1 = 4, column2 = 4)
+sprintf('单个字段准确率: %.3f', 1-length(result_project$Error)/nrow(hetong_train))
 sprintf('标准数据集中该字段不为空的记录数: %d', result_project$Possible)
 sprintf('选手提交结果中该字段不为空的记录数：%d', result_project$Actual)
 sprintf('主键匹配且提交字段值=正确字段值且均不为空: %d', result_project$Correct)
@@ -100,8 +116,8 @@ sprintf('字段召回率：%.3f', result_project$Recall)
 sprintf('字段准确率：%.3f', result_project$Precision)
 sprintf('字段F1得分：%.3f', result_project$F1)
 
-temp <- hetong_train[hetong_train[,1] %in% result_project$Error, c(1,2,3,4)]
-temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_project$Error,c(1,2,3,4)]
+temp <- hetong_train[hetong_train[,1] %in% result_project$Error, c(1,4)]
+temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_project$Error,c(1,4)]
 temp1 <- temp1[order(temp1[,1]),]
 write.csv(file = 'project_temp.csv', temp, row.names = F)
 write.csv(file = 'project_temp1.csv', temp1, row.names = F)
@@ -109,6 +125,7 @@ write.csv(file = 'project_temp1.csv', temp1, row.names = F)
 
 ```{r Calculate F1 of the contract}
 result_contract <- result_compute(hetong_train, hetong_trainresult, column1 = 5, column2 = 5)
+sprintf('单个字段准确率: %.3f', 1-length(result_contract$Error)/nrow(hetong_train))
 sprintf('标准数据集中该字段不为空的记录数: %d', result_contract$Possible)
 sprintf('选手提交结果中该字段不为空的记录数：%d', result_contract$Actual)
 sprintf('主键匹配且提交字段值=正确字段值且均不为空: %d', result_contract$Correct)
@@ -116,8 +133,8 @@ sprintf('字段召回率：%.3f', result_contract$Recall)
 sprintf('字段准确率：%.3f', result_contract$Precision)
 sprintf('字段F1得分：%.3f', result_contract$F1)
 
-temp <- hetong_train[hetong_train[,1] %in% result_contract$Error, c(1,2,3,8)]
-temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_contract$Error,c(1,2,3,8)]
+temp <- hetong_train[hetong_train[,1] %in% result_contract$Error, c(1,5)]
+temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_contract$Error,c(1,5)]
 temp1 <- temp1[order(temp1[,1]),]
 write.csv(file = 'contract_temp.csv', temp, row.names = F)
 write.csv(file = 'contract_temp1.csv', temp1, row.names = F)
@@ -125,6 +142,7 @@ write.csv(file = 'contract_temp1.csv', temp1, row.names = F)
 
 ```{r Calculate F1 of the money_up}
 result_money_up <- result_compute(hetong_train, hetong_trainresult, column1 = 6, column2 = 6)
+sprintf('单个字段准确率: %.3f', 1-length(result_money_up$Error)/nrow(hetong_train))
 sprintf('标准数据集中该字段不为空的记录数: %d', result_money_up$Possible)
 sprintf('选手提交结果中该字段不为空的记录数：%d', result_money_up$Actual)
 sprintf('主键匹配且提交字段值=正确字段值且均不为空: %d', result_money_up$Correct)
@@ -132,8 +150,8 @@ sprintf('字段召回率：%.3f', result_money_up$Recall)
 sprintf('字段准确率：%.3f', result_money_up$Precision)
 sprintf('字段F1得分：%.3f', result_money_up$F1)
 
-temp <- hetong_train[hetong_train[,1] %in% result_money_up$Error, c(1,2,3,8)]
-temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_money_up$Error,c(1,2,3,8)]
+temp <- hetong_train[hetong_train[,1] %in% result_money_up$Error, c(1,6)]
+temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_money_up$Error,c(1,6)]
 temp1 <- temp1[order(temp1[,1]),]
 write.csv(file = 'money_up_temp.csv', temp, row.names = F)
 write.csv(file = 'money_up_temp1.csv', temp1, row.names = F)
@@ -141,6 +159,7 @@ write.csv(file = 'money_up_temp1.csv', temp1, row.names = F)
 
 ```{r Calculate F1 of the money_low}
 result_money_low <- result_compute(hetong_train, hetong_trainresult, column1 = 7, column2 = 7)
+sprintf('单个字段准确率: %.3f', 1-length(result_money_low$Error)/nrow(hetong_train))
 sprintf('标准数据集中该字段不为空的记录数: %d', result_money_low$Possible)
 sprintf('选手提交结果中该字段不为空的记录数：%d', result_money_low$Actual)
 sprintf('主键匹配且提交字段值=正确字段值且均不为空: %d', result_money_low$Correct)
@@ -148,8 +167,8 @@ sprintf('字段召回率：%.3f', result_money_low$Recall)
 sprintf('字段准确率：%.3f', result_money_low$Precision)
 sprintf('字段F1得分：%.3f', result_money_low$F1)
 
-temp <- hetong_train[hetong_train[,1] %in% result_money_low$Error, c(1,2,3,8)]
-temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_money_low$Error,c(1,2,3,8)]
+temp <- hetong_train[hetong_train[,1] %in% result_money_low$Error, c(1,7)]
+temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_money_low$Error,c(1,7)]
 temp1 <- temp1[order(temp1[,1]),]
 write.csv(file = 'money_low_temp.csv', temp, row.names = F)
 write.csv(file = 'money_low_temp1.csv', temp1, row.names = F)
@@ -157,6 +176,7 @@ write.csv(file = 'money_low_temp1.csv', temp1, row.names = F)
 
 ```{r Calculate F1 of the Combo}
 result_combo <- result_compute(hetong_train, hetong_trainresult, column1 = 8, column2 = 8)
+sprintf('单个字段准确率: %.3f', 1-length(result_combo$Error)/nrow(hetong_train))
 sprintf('标准数据集中该字段不为空的记录数: %d', result_combo$Possible)
 sprintf('选手提交结果中该字段不为空的记录数：%d', result_combo$Actual)
 sprintf('主键匹配且提交字段值=正确字段值且均不为空: %d', result_combo$Correct)
@@ -164,43 +184,16 @@ sprintf('字段召回率：%.3f', result_combo$Recall)
 sprintf('字段准确率：%.3f', result_combo$Precision)
 sprintf('字段F1得分：%.3f', result_combo$F1)
 
-temp <- hetong_train[hetong_train[,1] %in% result_combo$Error, c(1,2,3,8)]
-temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_combo$Error,c(1,2,3,8)]
+temp <- hetong_train[hetong_train[,1] %in% result_combo$Error, c(1,8)]
+temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_combo$Error,c(1,8)]
 temp1 <- temp1[order(temp1[,1]),]
 write.csv(file = 'combo_temp.csv', temp, row.names = F)
 write.csv(file = 'combo_temp1.csv', temp1, row.names = F)
 ```
+
 ```{r}
 mean(c(result_project$F1, result_contract$F1, result_money_up$F1, result_money_low$F1, result_combo$F1))
 ```
 
-```{r temp}
-count <- 0
-Error <- c()
-vector_train <- c()
-vector_trainresult <- c()
-for(i in 1 : nrow(hetong_train)){
-  vector_train <- c(vector_train, tolower(paste(hetong_train[i,c(1,5)],collapse = '')))
-}
-for(i in 1 : nrow(hetong_trainresult)){
-  vector_trainresult <- c(vector_trainresult, tolower(paste(hetong_trainresult[i,c(1,5)],collapse = '')))
-}
 
-
-for(i in 1 : length(vector_train)){
-  if(vector_train[i] %in% vector_trainresult) count <- count + 1
-  else Error <- c(Error, hetong_train[i,1])
-}
-
-count/nrow(hetong_train)
-
-```
-
-```{r}
-temp <- hetong_train[hetong_train[,1] %in% Error, c(1,2,3)]
-temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% Error,-4]
-temp1 <- temp1[order(temp1[,1]),]
-write.csv(file = 'combo_temp.csv', temp, row.names = F)
-write.csv(file = 'combo_temp1.csv', temp1, row.names = F)
-```
 
