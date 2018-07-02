@@ -164,7 +164,7 @@ def beiche_key_value(soup, fullname):
         content_split.pop(0)
     pat_partya = '与(.+?)签订(了)?'
     pat_partyb = '(子公司|、|及|和)([\w|（|）|\(|\)]+?)(公司)'
-    pat_contract = '签订(了)?([\w|\-|\.]+?)(合同)'
+    pat_contract = '签订(了)?([\w|\-|\.|，|,]+?)(合同)'
     pat_money = '((\d*)(，|,)?)*(\d+)(\.?)(\d*) *(亿|千万|百万|十万|万|千|百|十)?元'
     ob_partya = []
     ob_partyb = []
@@ -182,7 +182,7 @@ def beiche_key_value(soup, fullname):
             if re.search(pat_money, contract_raw):
                 # 如果提取出的部分中有涉及金额
                 ob_money.append(refine_money(re.search(pat_money, contract_raw).group()))
-                ob_contract.append(re.split('的', contract_raw)[1])
+                ob_contract.append(re.split('元(的?)', contract_raw)[2])
             else:
                 ob_contract.append(contract_raw)
                 if re.search(pat_money, content):
@@ -209,10 +209,10 @@ def beiche_key_value(soup, fullname):
             _ = [ob_combo.append('') for x in partya]
             
             ob_contract.pop()
-            contract_raw = re.search('签订(了)?([\w|\-|\.]+)(合同)', content)
+            contract_raw = re.search(pat_contract, content)
             contract = contract_raw.group(2) + contract_raw.group(3)
             if re.search(pat_money, contract):
-                contract = re.split('的', contract)[1]
+                contract = re.split('元(的?)', contract)[2]
             contract = re.split('和|及|以及', contract)
             if len(contract) == len(partya):
                 _ = [ob_contract.append(x) for x in contract]
@@ -237,7 +237,8 @@ def find_contract(soup):
     section1 = str(soup.find(id = 'SectionCode_1'))
     section1 = re.sub('<.+>|\n | ', '', section1)
     section1 = re.sub('<.+>', '', section1)
-    # 1.5 可以考虑在小标题里面找合同（类似甲方的方法）
+    # div = soup.findAll('div')
+    # re.search('合同名称：([\n]*)([\w|（|）|\(|\)|\-|—|×|\+]+)', soupcontent)
     # 2 然后在section1里找是否有带有书名号的字段
     if re.findall(pat_contract, section1):
         contract = re.findall(pat_contract, section1)
@@ -276,9 +277,9 @@ def find_contract(soup):
                     else:
                         count[i] = 1
                 return(max(count, key = count.get))
-    # 1 首先在全文找关键词
-    if re.search('(签订了|签署了)(\w+?)(合同|协议|合同书|协议书)', soupcontent):
-            contract = re.search('(签订了|签署了)(\w+?)(合同|协议|合同书|协议书)', soupcontent).group(2) + re.search('(签订了|签署了)(\w+?)(合同|协议|合同书|协议书)', soupcontent).group(3)
+    # 4 全文找关键词
+    if re.search('(签订了|签署了)([\w|（|）|\(|\)|\-|—|×|\+|/|《]+?)(合同|协议|合同书|协议书)', soupcontent):
+            contract = re.search('(签订了|签署了)([\w|（|）|\(|\)|\-|—|×|\+|/|《]+?)(合同|协议|合同书|协议书)', soupcontent).group(2) + re.search('(签订了|签署了)([\w|（|）|\(|\)|\-|—|×|\+|/|《]+?)(合同|协议|合同书|协议书)', soupcontent).group(3)
             if len(contract) > 4:
                 return(contract)
             else:
