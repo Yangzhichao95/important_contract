@@ -294,7 +294,7 @@ def find_project(soup, contract):
     strline = ''
     for line in div[1:]:
         # 1 在title里面找
-        if line.get('title') and ('、项目名称：' in line.get('title') or '、工程名称：' in line.get('title') or '、中标项目：' in line.get('title') or '、采购项目名称：' in line.get('title')):
+        if line.get('title') and ('项目名称' in line.get('title') or '工程名称' in line.get('title') or '中标项目' in line.get('title') or '采购项目名称' in line.get('title')):
             if re.search('：([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+)', line.get('title')):
                 project = re.search('：([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|]+)', line.get('title')).group(1)
                 return(project)
@@ -309,11 +309,11 @@ def find_project(soup, contract):
         if line.get('title') and '项目' in line.get('title'):
             strline = re.sub('<.+>|\n | ', '', str(line))
             strline = re.sub('<.+>', '', strline)
-            if re.search('(项目名称|工程名称|中标内容)\w*：([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+)(，|。|；)', strline):
-                project = re.search('(项目名称|工程名称|中标内容)\w*：([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+)(，|。|；)', strline).group(2)
+            if re.search('(项目名称|工程名称|中标内容)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+)(，|。|；|\n)', strline):
+                project = re.search('(项目名称|工程名称|中标内容)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+)(，|。|；|\n)', strline).group(3)
                 return (project)
-    if re.search('(项目名称|工程名称|中标内容)\w*：([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+)(，|。|；)', soupcontent):
-        project = re.search('(项目名称|工程名称|中标内容)\w*：([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+)(，|。|；)', soupcontent).group(2)
+    if re.search('(项目名称|工程名称|中标内容)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+)(，|。|；|\n)', soupcontent):
+        project = re.search('(项目名称|工程名称|中标内容)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+)(，|。|；|\n)', soupcontent).group(3)
         # if len(project) > 7:
         return (project)
     if re.search('为([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)的?(中标单位|中标人)', soupcontent):
@@ -329,11 +329,16 @@ def find_project(soup, contract):
         # if len(project) > 7:
         return (project)
     if re.search('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+)”', soupcontent):
-        loc = [i.start() for i in re.finditer('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+)”', soupcontent)]
-        content = [soupcontent[max(0, j-15) : min(len(soupcontent)-1, j+60)] for j in loc]
+        loc = [[i.start(), i.end()] for i in re.finditer('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+)”', soupcontent)]
+        content = []
+        for j in range(len(loc)):
+            if j == 0:
+                content.append(soupcontent[max(0, loc[j][0]-5) : loc[j][1]])
+            else:
+                content.append(soupcontent[max(0, loc[j][0]-5, loc[j-1][1]) : loc[j][1]])
         content = [re.search('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+)(项目|采购|工程|”)', x).group() for x in content if re.search('以下简称|公示|公告|名单', x) is None and re.search('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+)(项目|采购|工程|”)', x)]
         content = [x for x in content if re.search('项目|采购|工程', x)]
-        if len(content) > 0:
+        if len(content) > 0 and len(content[0]) > 7:
             #只取第一个
             return(content[0])
     if re.search('在([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)(项目|工程)中', soupcontent):
