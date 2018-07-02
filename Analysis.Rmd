@@ -52,12 +52,13 @@ hetong_train <- read_delim('D:/Tianchi/data/FDDC_announcements_round1_train_resu
                            delim = '\t',col_names = c('公告id','甲方','乙方','项目名称','合同名称',
                                                       '合同金额上限','合同金额下限','联合体成员'))
 hetong_train <- as.data.frame(hetong_train)
-hetong_trainresult <- read.xlsx('D:/Tianchi/code/Save_key.xlsx', sheetName = 'page_1',
+hetong_trainresult <- read.xlsx('D:/Tianchi/code/Save_key_value.xlsx', sheetName = 'page_1',
                                 header = F, encoding = 'UTF-8')
 hetong_trainresult[,2] <- as.character(hetong_trainresult[,2])
 hetong_trainresult[,3] <- as.character(hetong_trainresult[,3])
 hetong_trainresult[,4] <- as.character(hetong_trainresult[,4])
-
+hetong_trainresult[,5] <- as.character(hetong_trainresult[,5])
+hetong_trainresult[,8] <- as.character(hetong_trainresult[,8])
 # ana_partya <- read.xlsx('D:/Tianchi/code/partya.xlsx', sheetName = 'page_1',
 #                                header = T, encoding = 'UTF-8')
 # ana_partya[,1] <-as.numeric(as.character(ana_partya[,1]))
@@ -90,9 +91,72 @@ write.csv(file = 'temp.csv', temp, row.names = F)
 write.csv(file = 'temp1.csv', temp1, row.names = F)
 ```
 
+```{r Calculate F1 of the project}
+result_project <- result_compute(hetong_train, hetong_trainresult, column1 = 4, column2 = 4)
+sprintf('标准数据集中该字段不为空的记录数: %d', result_project$Possible)
+sprintf('选手提交结果中该字段不为空的记录数：%d', result_project$Actual)
+sprintf('主键匹配且提交字段值=正确字段值且均不为空: %d', result_project$Correct)
+sprintf('字段召回率：%.3f', result_project$Recall)
+sprintf('字段准确率：%.3f', result_project$Precision)
+sprintf('字段F1得分：%.3f', result_project$F1)
 
-```{r Calculate Accurate Rate of the Combo}
-result_combo <- result_compute(hetong_train, hetong_trainresult, column1 = 8, column2 = 4)
+temp <- hetong_train[hetong_train[,1] %in% result_project$Error, c(1,2,3,4)]
+temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_project$Error,c(1,2,3,4)]
+temp1 <- temp1[order(temp1[,1]),]
+write.csv(file = 'project_temp.csv', temp, row.names = F)
+write.csv(file = 'project_temp1.csv', temp1, row.names = F)
+```
+
+```{r Calculate F1 of the contract}
+result_contract <- result_compute(hetong_train, hetong_trainresult, column1 = 5, column2 = 5)
+sprintf('标准数据集中该字段不为空的记录数: %d', result_contract$Possible)
+sprintf('选手提交结果中该字段不为空的记录数：%d', result_contract$Actual)
+sprintf('主键匹配且提交字段值=正确字段值且均不为空: %d', result_contract$Correct)
+sprintf('字段召回率：%.3f', result_contract$Recall)
+sprintf('字段准确率：%.3f', result_contract$Precision)
+sprintf('字段F1得分：%.3f', result_contract$F1)
+
+temp <- hetong_train[hetong_train[,1] %in% result_contract$Error, c(1,2,3,8)]
+temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_contract$Error,c(1,2,3,8)]
+temp1 <- temp1[order(temp1[,1]),]
+write.csv(file = 'contract_temp.csv', temp, row.names = F)
+write.csv(file = 'contract_temp1.csv', temp1, row.names = F)
+```
+
+```{r Calculate F1 of the money_up}
+result_money_up <- result_compute(hetong_train, hetong_trainresult, column1 = 6, column2 = 6)
+sprintf('标准数据集中该字段不为空的记录数: %d', result_money_up$Possible)
+sprintf('选手提交结果中该字段不为空的记录数：%d', result_money_up$Actual)
+sprintf('主键匹配且提交字段值=正确字段值且均不为空: %d', result_money_up$Correct)
+sprintf('字段召回率：%.3f', result_money_up$Recall)
+sprintf('字段准确率：%.3f', result_money_up$Precision)
+sprintf('字段F1得分：%.3f', result_money_up$F1)
+
+temp <- hetong_train[hetong_train[,1] %in% result_money_up$Error, c(1,2,3,8)]
+temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_money_up$Error,c(1,2,3,8)]
+temp1 <- temp1[order(temp1[,1]),]
+write.csv(file = 'money_up_temp.csv', temp, row.names = F)
+write.csv(file = 'money_up_temp1.csv', temp1, row.names = F)
+```
+
+```{r Calculate F1 of the money_low}
+result_money_low <- result_compute(hetong_train, hetong_trainresult, column1 = 7, column2 = 7)
+sprintf('标准数据集中该字段不为空的记录数: %d', result_money_low$Possible)
+sprintf('选手提交结果中该字段不为空的记录数：%d', result_money_low$Actual)
+sprintf('主键匹配且提交字段值=正确字段值且均不为空: %d', result_money_low$Correct)
+sprintf('字段召回率：%.3f', result_money_low$Recall)
+sprintf('字段准确率：%.3f', result_money_low$Precision)
+sprintf('字段F1得分：%.3f', result_money_low$F1)
+
+temp <- hetong_train[hetong_train[,1] %in% result_money_low$Error, c(1,2,3,8)]
+temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_money_low$Error,c(1,2,3,8)]
+temp1 <- temp1[order(temp1[,1]),]
+write.csv(file = 'money_low_temp.csv', temp, row.names = F)
+write.csv(file = 'money_low_temp1.csv', temp1, row.names = F)
+```
+
+```{r Calculate F1 of the Combo}
+result_combo <- result_compute(hetong_train, hetong_trainresult, column1 = 8, column2 = 8)
 sprintf('标准数据集中该字段不为空的记录数: %d', result_combo$Possible)
 sprintf('选手提交结果中该字段不为空的记录数：%d', result_combo$Actual)
 sprintf('主键匹配且提交字段值=正确字段值且均不为空: %d', result_combo$Correct)
@@ -101,22 +165,25 @@ sprintf('字段准确率：%.3f', result_combo$Precision)
 sprintf('字段F1得分：%.3f', result_combo$F1)
 
 temp <- hetong_train[hetong_train[,1] %in% result_combo$Error, c(1,2,3,8)]
-temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_combo$Error,]
+temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% result_combo$Error,c(1,2,3,8)]
 temp1 <- temp1[order(temp1[,1]),]
-write.csv(file = 'temp.csv', temp, row.names = F)
-write.csv(file = 'temp1.csv', temp1, row.names = F)
+write.csv(file = 'combo_temp.csv', temp, row.names = F)
+write.csv(file = 'combo_temp1.csv', temp1, row.names = F)
+```
+```{r}
+mean(c(result_project$F1, result_contract$F1, result_money_up$F1, result_money_low$F1, result_combo$F1))
 ```
 
-```{r combo}
+```{r temp}
 count <- 0
 Error <- c()
 vector_train <- c()
 vector_trainresult <- c()
 for(i in 1 : nrow(hetong_train)){
-  vector_train <- c(vector_train, tolower(paste(hetong_train[i,c(1,2,3)],collapse = '')))
+  vector_train <- c(vector_train, tolower(paste(hetong_train[i,c(1,5)],collapse = '')))
 }
 for(i in 1 : nrow(hetong_trainresult)){
-  vector_trainresult <- c(vector_trainresult, tolower(paste(hetong_trainresult[i,c(1,2,3)],collapse = '')))
+  vector_trainresult <- c(vector_trainresult, tolower(paste(hetong_trainresult[i,c(1,5)],collapse = '')))
 }
 
 
@@ -135,181 +202,5 @@ temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% Error,-4]
 temp1 <- temp1[order(temp1[,1]),]
 write.csv(file = 'combo_temp.csv', temp, row.names = F)
 write.csv(file = 'combo_temp1.csv', temp1, row.names = F)
-```
-
-
-```{r Find the Error term}
-Errorid<-sapply(1:length(Error), function(x) as.numeric(substr(Error[x],regexpr('\\d+', Error[x])[1] ,
-                                                        attr(regexpr('\\d+', Error[x]),"match.length"))))
-
-sub_ana<-ana_partyb[ana_partyb[, 1] %in% Errorid,]
-sub_ana<-sub_ana[order(sub_ana[,1]), ]
-sub_result<-hetong_trainresult[hetong_trainresult[,1] %in% Errorid,]
-sub_result<-sub_result[order(sub_result[,1]), ]
-write.csv(file = 'sub_ana.csv', sub_ana, row.names = F)
-write.csv(file = 'sub_result.csv', sub_result, row.names = F)
-```
-
-### For Part A
-
-```{r}
-hetong_trainresult <- read.xlsx('D:/Tianchi/code/Save_partya.xlsx', sheetName = 'page_1',
-                                header = F, encoding = 'UTF-8')
-hetong_trainresult[,2] <- as.character(hetong_trainresult[,2])
-
-count <- 0
-Error <- c()
-vector_train <- c()
-vector_trainresult <- c()
-for(i in 1 : nrow(hetong_train)){
-  vector_train <- c(vector_train, paste(hetong_train[i,c(1,2)],collapse = ''))
-}
-for(i in 1 : nrow(hetong_trainresult)){
-  vector_trainresult <- c(vector_trainresult, paste(hetong_trainresult[i,c(1,2)],collapse = ''))
-}
-
-
-for(i in 1 : length(vector_train)){
-  if(vector_train[i] %in% vector_trainresult) count <- count + 1
-  else Error <- c(Error, vector_train[i])
-}
-Errorid<-sapply(1:length(Error), function(x) as.numeric(substr(Error[x],regexpr('\\d+', Error[x])[1] ,
-                                                        attr(regexpr('\\d+', Error[x]),"match.length"))))
-count/nrow(hetong_train)
-
-```
-
-```{r}
-
-temp <- hetong_train[hetong_train[,1] %in% Errorid,]
-temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% Errorid,]
-temp1 <- temp1[order(temp1[,1]),]
-```
-
-### For Money
-```{r}
-hetong_train <- read_delim('D:/Tianchi/data/FDDC_announcements_round1_train_result_20180616/hetong.train', 
-                           delim = '\t',col_names = c('公告id','甲方','乙方','项目名称','合同名称',
-                                                      '合同金额上限','合同金额下限','联合体成员'))
-hetong_train <- as.data.frame(hetong_train)
-hetong_trainresult <- read.xlsx('D:/Tianchi/code/Save_money.xlsx', sheetName = 'page_1',
-                                header = F, encoding = 'UTF-8')
-
-count <- 0
-Error <- c()
-vector_train <- c()
-vector_trainresult <- c()
-for(i in 1 : nrow(hetong_train)){
-  vector_train <- c(vector_train, paste(hetong_train[i,c(1,6,7)],collapse = ''))
-}
-for(i in 1 : nrow(hetong_trainresult)){
-  vector_trainresult <- c(vector_trainresult, paste(hetong_trainresult[i,c(1,2,3)],collapse = ''))
-}
-
-
-for(i in 1 : length(vector_train)){
-  if(vector_train[i] %in% vector_trainresult) count <- count + 1
-  else Error <- c(Error, hetong_train[i,1])
-}
-Errorid<-Error
-
-count/nrow(hetong_train)
-```
-
-```{r}
-temp <- hetong_train[hetong_train[,1] %in% Errorid, c(1,6,7)]
-temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% Errorid,]
-temp1 <- temp1[order(temp1[,1]),]
-write.csv(file = 'temp.csv', temp, row.names = F)
-write.csv(file = 'temp1.csv', temp1, row.names = F)
-```
-
-# For contract
-```{r}
-hetong_train <- read_delim('D:/Tianchi/data/FDDC_announcements_round1_train_result_20180616/hetong.train', 
-                           delim = '\t',col_names = c('公告id','甲方','乙方','项目名称','合同名称',
-                                                      '合同金额上限','合同金额下限','联合体成员'))
-hetong_train <- as.data.frame(hetong_train)
-hetong_trainresult <- read.xlsx('D:/Tianchi/code/Save_contract.xlsx', sheetName = 'page_1',
-                                header = F, encoding = 'UTF-8')
-hetong_trainresult[,2] <- as.character(hetong_trainresult[,2])
-
-count <- 0
-Error <- c()
-vector_train <- c()
-vector_trainresult <- c()
-for(i in 1 : nrow(hetong_train)){
-  vector_train <- c(vector_train, tolower(paste(hetong_train[i,c(1,5)],collapse = '')))
-}
-for(i in 1 : nrow(hetong_trainresult)){
-  vector_trainresult <- c(vector_trainresult, tolower(paste(hetong_trainresult[i,c(1,2)],collapse = '')))
-}
-
-
-for(i in 1 : length(vector_train)){
-  if(vector_train[i] %in% vector_trainresult) count <- count + 1
-  else Error <- c(Error, hetong_train[i,1])
-}
-Errorid<-Error
-
-count/nrow(hetong_train)
-```
-
-```{r}
-temp <- hetong_train[hetong_train[,1] %in% Errorid, c(1,5)]
-temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% Errorid,]
-temp1 <- temp1[order(temp1[,1]),]
-write.csv(file = 'temp.csv', temp, row.names = F)
-write.csv(file = 'temp1.csv', temp1, row.names = F)
-```
-
-# For project
-
-```{r}
-hetong_train <- read_delim('D:/Tianchi/data/FDDC_announcements_round1_train_result_20180616/hetong.train', 
-                           delim = '\t',col_names = c('公告id','甲方','乙方','项目名称','合同名称',
-                                                      '合同金额上限','合同金额下限','联合体成员'))
-hetong_train <- as.data.frame(hetong_train)
-hetong_trainresult <- read.xlsx('D:/Tianchi/code/Save_project.xlsx', sheetName = 'page_1',
-                                header = F, encoding = 'UTF-8')
-hetong_trainresult[,2] <- as.character(hetong_trainresult[,2])
-
-count <- 0
-Error <- c()
-vector_train <- c()
-vector_trainresult <- c()
-for(i in 1 : nrow(hetong_train)){
-  vector_train <- c(vector_train, tolower(paste(hetong_train[i,c(1,4)],collapse = '')))
-}
-for(i in 1 : nrow(hetong_trainresult)){
-  vector_trainresult <- c(vector_trainresult, tolower(paste(hetong_trainresult[i,c(1,2)],collapse = '')))
-}
-
-
-for(i in 1 : length(vector_train)){
-  if(vector_train[i] %in% vector_trainresult) count <- count + 1
-  else 
-    Error <- c(Error, hetong_train[i,1])
-}
-Errorid<-Error
-
-count/nrow(hetong_train)
-```
-
-```{r}
-partycontract <- read.xlsx('D:/Tianchi/code/partyproject.xlsx', sheetName = 'page_1',
-                                header = F, encoding = 'UTF-8')
-temp <- partycontract[partycontract[,1] %in% Errorid, c(1,4,5)]
-temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% Errorid,]
-temp1 <- temp1[order(temp1[,1]),]
-write.csv(file = 'temp.csv', temp, row.names = F)
-write.csv(file = 'temp1.csv', temp1, row.names = F)
-write.csv(file = 'combo.csv', combo, row.names = F)
-```
-
-#For Combo
-```{r}
-combo <- hetong_train[!is.na(hetong_train[,8]),c(1,8)]
-
 ```
 
