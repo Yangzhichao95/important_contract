@@ -366,7 +366,7 @@ def find_money(soup):
     soupcontent = re.sub('=\d+', '', soupcontent) # For 250247.html
     soupcontent = re.sub('编码：\d+', '', soupcontent)
     section1 = str(soup.find(id = 'SectionCode_1'))
-    section1 = re.sub('<.+>|\n|   ', '', section1)
+    section1 = re.sub('<.+>|\n | ', '', section1)
     section1 = re.sub('<.+?>', '', section1)
     section1 = re.sub('=\d+', '', section1) # For 250247.html
     section1 = re.sub('编码：\d+', '', section1)
@@ -380,6 +380,22 @@ def find_money(soup):
           #  up_money, low_money = refine_up_low(up_low_raw)
         #return (up_money, low_money)
     # 2 匹配上下限一样的金额
+    div = soup.findAll('div')
+    strline = ''
+    for line in div[1:]:
+        # 1 在title里面找
+        if line.get('title') and re.search('((中标|合同)总?(金额|价))', line.get('title')):
+            if re.search('：' + pat_money, line.get('title')):
+                money = re.search('：' + pat_money, line.get('title')).group()
+                return(refine_money(money), refine_money(money))
+            else:
+                strline = line.get_text()
+                strline = re.sub('\n | ', '', strline)
+                strline_split = re.split('\n', strline)
+                strline_split = [x for x in strline_split if len(x) > 0]
+                if len(strline_split) == 1 and re.search(pat_foreign, strline):
+                    money = refine_money(re.search(pat_foreign, strline).group())
+                    return(money, money)
     if [x.start() for x in re.finditer(pat_foreign, section1)]:
         loc = [[x.start(), x.end()] for x in re.finditer(pat_money, section1)]
         if len(loc) == 0:
@@ -388,16 +404,20 @@ def find_money(soup):
             money = []
             for j in range(len(loc)):
                 if j == 0:
-                    money.append(section1[max(0,loc[j][0]-10):loc[j][1]])
+                    money.append(section1[max(0,loc[j][0]-20):loc[j][1]])
                 else:
-                    money.append(section1[max(0, loc[j][0]-10, loc[j-1][1]) : loc[j][1]])
+                    money.append(section1[max(0, loc[j][0]-20, loc[j-1][1]) : loc[j][1]])
             moneycopy = money.copy()
-            for sub_money in moneycopy:
-                if re.search('((中标|合同)总?(金额|价))|：', sub_money[0:10]):
-                    raw_return = refine_money(re.search(pat_foreign, sub_money).group())
+            for i in range(len(moneycopy)):
+                if re.search('资本|资产|收入|利润|合计|总共|收款', moneycopy[i]) and re.search('中标', moneycopy[i]) is None:
+                    money.remove(moneycopy[i])
+                    continue
+                if re.search('((中标|合同)总?(金额|价))', moneycopy[i]):
+                    if i == 0 or loc[i][0]-20 > loc[i-1][1]:
+                        raw_return = refine_money(re.search(pat_foreign, moneycopy[i][20:]).group())
+                    else:
+                        raw_return = refine_money(re.search(pat_foreign, moneycopy[i][(loc[i][0]-loc[i-1][1]):]).group())
                     return (raw_return, raw_return)
-                if re.search('资本|资产|收入|利润|合计|总共', sub_money) and re.search('中标', sub_money) is None:
-                    money.remove(sub_money)
             money = [re.search(pat_foreign, x).group() for x in money if re.search(pat_foreign, x)]
             if len(money) == 0:
                 return('', '')
@@ -409,10 +429,10 @@ def find_money(soup):
                     return (max(money), max(money))
         else:
             money = section1[max(0,loc[0][0]-10):min(len(section1), loc[0][1])]
-            if re.search('资本|资产|收入|利润|合计|总共', money) and re.search('中标', money) is None:
+            if re.search('资本|资产|收入|利润|合计|总共|收款', money) and re.search('中标', money) is None:
                 return('', '')
             else:
-                money = refine_money(re.search(pat_foreign, money).group())
+                money = refine_money(re.search(pat_foreign, money[10:]).group())
                 return (money, money)
     elif [x.start() for x in re.finditer(pat_foreign, soupcontent)]:
         loc = [[x.start(), x.end()] for x in re.finditer(pat_money, soupcontent)]
@@ -422,16 +442,20 @@ def find_money(soup):
             money = []
             for j in range(len(loc)):
                 if j == 0:
-                    money.append(soupcontent[max(0,loc[j][0]-10):loc[j][1]])
+                    money.append(soupcontent[max(0,loc[j][0]-20):loc[j][1]])
                 else:
-                    money.append(soupcontent[max(0, loc[j][0]-10, loc[j-1][1]) : loc[j][1]])
+                    money.append(soupcontent[max(0, loc[j][0]-20, loc[j-1][1]) : loc[j][1]])
             moneycopy = money.copy()
-            for sub_money in moneycopy:
-                if re.search('((中标|合同)总?(金额|价))|：', sub_money[0:10]):
-                    raw_return = refine_money(re.search(pat_foreign, sub_money).group())
+            for i in range(len(moneycopy)):
+                if re.search('资本|资产|收入|利润|合计|总共', moneycopy[i]) and re.search('中标', moneycopy[i]) is None:
+                    money.remove(moneycopy[i])
+                    continue
+                if re.search('((中标|合同)总?(金额|价))', moneycopy[i]):
+                    if i == 0 or loc[i][0]-20 > loc[i-1][1]:
+                        raw_return = refine_money(re.search(pat_foreign, moneycopy[i][20:]).group())
+                    else:
+                        raw_return = refine_money(re.search(pat_foreign, moneycopy[i][(loc[i][0]-loc[i-1][1]):]).group())
                     return (raw_return, raw_return)
-                if re.search('资本|资产|收入|利润|合计|总共', sub_money) and re.search('中标', sub_money) is None:
-                    money.remove(sub_money)
             money = [re.search(pat_foreign, x).group() for x in money if re.search(pat_foreign, x)]
             if len(money) == 0:
                 return('', '')
@@ -446,7 +470,7 @@ def find_money(soup):
             if re.search('资本|资产|收入|利润|合计|总共', money) and re.search('中标', money) is None:
                 return('', '')
             else:
-                money = refine_money(re.search(pat_foreign, money).group())
+                money = refine_money(re.search(pat_foreign, money[10:]).group())
                 return (money, money)
     else:
         return('', '')
