@@ -30,7 +30,7 @@ def refine_output_project(project):
         project_temp = re.sub('（', '(', project_temp)
         project_temp = re.sub('）', ')', project_temp)
         if re.search('编号', project_temp):
-            project_temp = re.sub('\(.+\)', '', project_temp)
+            project_temp = re.sub('\(\w*编号.+\)', '', project_temp)
         if len(project_temp) > 1 and  re.search('\d', project_temp[len(project_temp) - 1]):
             project_temp = project_temp[:(len(project_temp) - 1)]
         project_return.append(project_temp.capitalize())
@@ -295,8 +295,8 @@ def find_project(soup, contract):
     for line in div[1:]:
         # 1 在title里面找
         if line.get('title') and ('、项目名称' in line.get('title') or '、工程名称' in line.get('title') or '、中标项目' in line.get('title') or '、采购项目名称' in line.get('title')):
-            if re.search('：([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/]+)', line.get('title')):
-                project = re.search('：([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/]+)', line.get('title')).group(1)
+            if re.search('：([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)', line.get('title')):
+                project = re.search('：([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)', line.get('title')).group(1)
                 return(project)
             else:
                 strline = line.get_text()
@@ -304,17 +304,17 @@ def find_project(soup, contract):
                 strline_split = re.split('\n', strline)
                 strline_split = [x for x in strline_split if len(x) > 0]
                 if len(strline_split) == 1 and re.search('，', strline_split[0]) is None:
-                    return (strline_split[0])
+                    return (re.sub('。', '',strline_split[0]))
     for line in div[1:]:
         # 2 项目XX
         if line.get('title') and '项目' in line.get('title'):
             strline = re.sub('<.+>|\n | ', '', str(line))
             strline = re.sub('<.+>', '', strline)
-            if re.search('(项目名称|工程名称|中标内容)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/]+)(，|。|；|\n)', strline):
-                project = re.search('(项目名称|工程名称|中标内容)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/]+)(，|。|；|\n)', strline).group(3)
-                return (project)
-    if re.search('(项目名称|工程名称|中标内容)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/]+)(，|。|；|\n)', soupcontent):
-        project = re.search('(项目名称|工程名称|中标内容)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/]+)(，|。|；|\n)', soupcontent).group(3)
+            if re.search('(项目名称|工程名称|中标内容|中标名称)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(，|。|；|\n)', strline):
+                project = re.search('(项目名称|工程名称|中标内容|中标名称)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(，|。|；|\n)', strline).group(3)
+                return (project)        
+    if re.search('(项目名称|工程名称|中标内容|中标名称)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(，|。|；|\n)', soupcontent):
+        project = re.search('(项目名称|工程名称|中标内容|中标名称)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(，|。|；|\n)', soupcontent).group(3)
         # if len(project) > 7:
         return (project)
     if re.search('为([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)的?(中标单位|中标人)', soupcontent):
@@ -329,21 +329,28 @@ def find_project(soup, contract):
             project = content.group(1)
         # if len(project) > 7:
         return (project)
-    if re.search('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/]+)”', soupcontent):
-        loc = [[i.start(), i.end()] for i in re.finditer('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/]+)”', soupcontent)]
+    if re.search('中标([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(项目|工程|采购|活动|标段|）)', soupcontent):
+        project_raw = re.findall('中标([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(项目|工程|采购|活动|标段|）)', soupcontent)
+        project_raw = [x[0] + x[1] for x in project_raw]
+        project_raw = [x for x in project_raw if len(x) > 7 and re.search('通知书', x) is None]
+        if len(project_raw) > 0:
+            len_project_raw = [len(x) for x in project_raw]
+            return(project_raw[len_project_raw.index(max(len_project_raw))])
+    if re.search('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)”', soupcontent):
+        loc = [[i.start(), i.end()] for i in re.finditer('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)”', soupcontent)]
         content = []
         for j in range(len(loc)):
             if j == 0:
                 content.append(soupcontent[max(0, loc[j][0]-5) : loc[j][1]])
             else:
                 content.append(soupcontent[max(0, loc[j][0]-5, loc[j-1][1]) : loc[j][1]])
-        content = [re.search('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/]+)(项目|采购|工程|”)', x).group() for x in content if re.search('以下简称|公示|公告|名单', x) is None and re.search('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/]+)(项目|采购|工程|”)', x)]
+        content = [re.search('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(项目|采购|工程|”)', x).group() for x in content if re.search('以下简称|公示|公告|名单', x) is None and re.search('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(项目|采购|工程|”)', x)]
         content = [x for x in content if re.search('项目|采购|工程', x)]
         if len(content) > 0 and len(content[0]) > 7:
             #只取第一个
             return(content[0])
-    if re.search('在([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/]+?)(项目|工程)中', soupcontent):
-        content = re.search('在([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/]+?)(项目|工程)中', soupcontent)
+    if re.search('在([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+?)(项目|工程)中', soupcontent):
+        content = re.search('在([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+?)(项目|工程)中', soupcontent)
         project = content.group(1) + content.group(2)
         if len(project) > 7:
             return (project)
@@ -374,11 +381,16 @@ def find_money(soup):
         #return (up_money, low_money)
     # 2 匹配上下限一样的金额
     if [x.start() for x in re.finditer(pat_foreign, section1)]:
-        loc = [x.start() for x in re.finditer(pat_money, section1)]
+        loc = [[x.start(), x.end()] for x in re.finditer(pat_money, section1)]
         if len(loc) == 0:
-            loc = [x.start() for x in re.finditer(pat_foreign, section1)]
+            loc = [[x.start(), x.end()] for x in re.finditer(pat_foreign, section1)]
         if len(loc) > 1:
-            money = [section1[max(0,j-10):min(len(section1), j+20)] for j in loc]
+            money = []
+            for j in range(len(loc)):
+                if j == 0:
+                    money.append(section1[max(0,loc[j][0]-10):loc[j][1]])
+                else:
+                    money.append(section1[max(0, loc[j][0]-10, loc[j-1][1]) : loc[j][1]])
             moneycopy = money.copy()
             for sub_money in moneycopy:
                 if re.search('((中标|合同)总?(金额|价))|：', sub_money[0:10]):
@@ -396,18 +408,23 @@ def find_money(soup):
                 else:
                     return (max(money), max(money))
         else:
-            money = section1[max(0,loc[0]-10):min(len(section1), loc[0]+20)]
+            money = section1[max(0,loc[0][0]-10):min(len(section1), loc[0][1])]
             if re.search('资本|资产|收入|利润|合计|总共', money) and re.search('中标', money) is None:
                 return('', '')
             else:
                 money = refine_money(re.search(pat_foreign, money).group())
                 return (money, money)
     elif [x.start() for x in re.finditer(pat_foreign, soupcontent)]:
-        loc = [x.start() for x in re.finditer(pat_money, soupcontent)]
+        loc = [[x.start(), x.end()] for x in re.finditer(pat_money, soupcontent)]
         if len(loc) == 0:
-            loc = [x.start() for x in re.finditer(pat_foreign, soupcontent)]
+            loc = [[x.start(), x.end()] for x in re.finditer(pat_foreign, soupcontent)]
         if len(loc) > 1:
-            money = [soupcontent[max(0,j-10):min(len(soupcontent), j+20)] for j in loc]
+            money = []
+            for j in range(len(loc)):
+                if j == 0:
+                    money.append(soupcontent[max(0,loc[j][0]-10):loc[j][1]])
+                else:
+                    money.append(soupcontent[max(0, loc[j][0]-10, loc[j-1][1]) : loc[j][1]])
             moneycopy = money.copy()
             for sub_money in moneycopy:
                 if re.search('((中标|合同)总?(金额|价))|：', sub_money[0:10]):
@@ -425,7 +442,7 @@ def find_money(soup):
                 else:
                     return (max(money), max(money))
         else:
-            money = soupcontent[max(0,loc[0]-10):min(len(soupcontent), loc[0]+20)]
+            money = soupcontent[max(0,loc[0][0]-10):min(len(soupcontent), loc[0][1])]
             if re.search('资本|资产|收入|利润|合计|总共', money) and re.search('中标', money) is None:
                 return('', '')
             else:
