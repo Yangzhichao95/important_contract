@@ -35,9 +35,54 @@ def refine_output_project(project):
             project_temp = project_temp[:(len(project_temp) - 1)]
         project_return.append(project_temp.capitalize())
     return(project_return)
-    
+
+# 中文字典   
+chs_arabic_map = {u'〇' : 0, u'一' : 1, u'二' : 2, u'三' : 3, u'四' : 4,
+                  u'五' : 5, u'六' : 6, u'七' : 7, u'八' : 8, u'九' : 9,
+                  u'十' : 10, u'百' : 100, u'千' : 1000, u'万' : 10000,
+                  u'零' : 0, u'壹' : 1, u'贰' : 2, u'叁' : 3, u'肆' : 4,
+                  u'伍' : 5, u'陆' : 6, u'柒' : 7, u'捌' : 8, u'玖' : 9,
+                  u'拾' : 10, u'佰' : 100, u'仟' : 1000, u'萬' : 10000,
+                  u'亿' : 10**8, u'億' : 10**8, u'幺' : 1}
+
+def convert_chinese_digits_to_arabic(chinese_digits, chs_arabic_map):
+    """
+    将中文表述的数字转换成阿拉伯数字
+        :param chinese_digits: 待转换的中文表达数字
+        :return:转换结果
+    """
+    result = 0
+    tmp = 0
+    hnd_mln = 0
+    for count in range(len(chinese_digits)):
+        curr_char = chinese_digits[count]
+        curr_digit = chs_arabic_map.get(curr_char, None)
+        if curr_digit is not None:
+            if curr_digit == 10**8:
+                result = result + tmp
+                result = result * curr_digit
+                hnd_mln = hnd_mln*10**8 + result
+                result = 0
+                tmp = 0
+            elif curr_digit == 10**4:
+                result = result + tmp
+                result = result * curr_digit
+                tmp = 0
+            elif curr_digit >=10:
+                tmp = 1 if tmp ==0 else tmp
+                result = result + curr_digit*tmp
+                tmp = 0
+            elif curr_digit is not None:
+                tmp = tmp*10 + curr_digit
+            else:
+                return result
+    result = result + tmp
+    result = result + hnd_mln
+    return (str(result) + '元')
 
 def refine_money(str_money):
+    if re.search('[零一二三四五六七八九〇壹贰叁肆伍陆柒捌玖拾佰仟萬億幺]', str_money):
+        str_money = convert_chinese_digits_to_arabic(str_money, chs_arabic_map)
     money_raw = re.search('((\d*)(，|,)?)*(\d+)(\.?)(\d*)', str_money).group()
     money_raw = float(re.sub('，|,', '', money_raw))
     unit = re.search('亿|千万|百万|十万|万|千|百|十|元', str_money).group()
@@ -357,10 +402,11 @@ def find_project(soup, contract):
     return('')
 
 def find_money(soup):
-    pat_up_low_foreign = '((\d*)(，|,)?)*(\d+)(\.?)(\d*) *(—|\-|~)((\d*)(，|,)?)*(\d+)\.?(\d*)(亿|千万|百万|十万|万|千|百|十)?\w?元'
-    pat_foreign = '((\d*)(，|,)?)*(\d+)(\.?)(\d*)(亿|千万|百万|十万|万|千|百|十)?\w?元'
-    pat_up_low = '((\d*)(，|,)?)*(\d+)(\.?)(\d*)(—|\-|~)((\d*)(，|,)?)*(\d+)\.?(\d*) *(亿|千万|百万|十万|万|千|百|十)?元'
-    pat_money = '((\d*)(，|,)?)*(\d+)(\.?)(\d*)(亿|千万|百万|十万|万|千|百|十)?元'
+    #pat_up_low_foreign = '((\d*)(，|,)?)*(\d+)(\.?)(\d*) *(—|\-|~)((\d*)(，|,)?)*(\d+)\.?(\d*)(亿|千万|百万|十万|万|千|百|十)?\w?元'
+    pat_foreign = '((?![百千万佰仟萬亿億])[零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬亿億幺]+?|((\d*)(，|,)?)*(\d+)(\.?)(\d*)(亿|千万|百万|十万|万|千|百|十)?)\w?元'
+    #pat = '([零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬亿億幺]+?|((\d*)(，|,)?)*(\d+)(\.?)(\d*)(亿|千万|百万|十万|万|千|百|十)?)\w?元'
+    #pat_up_low = '((\d*)(，|,)?)*(\d+)(\.?)(\d*)(—|\-|~)((\d*)(，|,)?)*(\d+)\.?(\d*) *(亿|千万|百万|十万|万|千|百|十)?元'
+    pat_money = '((?![百千万佰仟萬亿億])[零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬亿億幺]+?|((\d*)(，|,)?)*(\d+)(\.?)(\d*)(亿|千万|百万|十万|万|千|百|十)?)元'
     soupcontent = re.sub('<.+>|\n | ', '', str(soup))
     soupcontent = re.sub('<.+?>', '', soupcontent)
     soupcontent = re.sub('=\d+', '', soupcontent) # For 250247.html
@@ -409,7 +455,7 @@ def find_money(soup):
                     money.append(section1[max(0, loc[j][0]-20, loc[j-1][1]) : loc[j][1]])
             moneycopy = money.copy()
             for i in range(len(moneycopy)):
-                if re.search('资本|资产|收入|利润|合计|总共|收款', moneycopy[i]) and re.search('中标', moneycopy[i]) is None:
+                if re.search('资本|资产|收入|利润|合计|总共|收款|服务费', moneycopy[i]) and re.search('中标', moneycopy[i]) is None:
                     money.remove(moneycopy[i])
                     continue
                 if re.search('((中标|合同)总?(金额|价))', moneycopy[i]):
@@ -429,7 +475,7 @@ def find_money(soup):
                     return (max(money), max(money))
         else:
             money = section1[max(0,loc[0][0]-10):min(len(section1), loc[0][1])]
-            if re.search('资本|资产|收入|利润|合计|总共|收款', money) and re.search('中标', money) is None:
+            if re.search('资本|资产|收入|利润|合计|总共|收款|服务费', money) and re.search('中标', money) is None:
                 return('', '')
             else:
                 money = refine_money(re.search(pat_foreign, money[10:]).group())
