@@ -362,8 +362,8 @@ def find_project(soup, contract):
         project = re.search('(项目名称|工程名称|中标内容|中标名称)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(，|。|；|\n)', soupcontent).group(3)
         # if len(project) > 7:
         return (project)
-    if re.search('为([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)的?(中标单位|中标人)', soupcontent):
-        project = re.search('为([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)的?(中标单位|中标人)', soupcontent).group(1)
+    if re.search('为([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)的?预?(中标单位|中标人)', soupcontent):
+        project = re.search('为([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)的?预?(中标单位|中标人)', soupcontent).group(1)
         # if len(project) > 7:
         return (project)
     if re.search('中标项目为([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)(项目|，|。)', soupcontent):

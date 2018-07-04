@@ -116,6 +116,33 @@ hetong_trainresult[,8] <- as.character(hetong_trainresult[,8])
 
 ```
 
+```{r}
+count <- 0
+Error <- c()
+vector_train <- c()
+vector_trainresult <- c()
+for(i in 1 : nrow(hetong_train)){
+  vector_train <- c(vector_train, tolower(paste(hetong_train[i,c(1,2,3)],collapse = '')))
+}
+for(i in 1 : nrow(hetong_trainresult)){
+  vector_trainresult <- c(vector_trainresult, tolower(paste(hetong_trainresult[i,c(1,2,3)],collapse = '')))
+}
+
+
+for(i in 1 : length(vector_train)){
+  if(vector_train[i] %in% vector_trainresult) count <- count + 1
+  else Error <- c(Error, hetong_train[i,1])
+}
+
+count/nrow(hetong_train)
+temp <- hetong_train[hetong_train[,1] %in% Error, c(1,2,3)]
+temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% Error,]
+temp1 <- temp1[order(temp1[,1]),]
+write.csv(file = 'temp.csv', temp, row.names = F)
+write.csv(file = 'temp1.csv', temp1, row.names = F)
+```
+
+
 ```{r Calculate F1 of the project}
 result_project <- result_compute(hetong_train, hetong_trainresult, column1 = 4, column2 = 4)
 sprintf('单个字段准确率: %.3f', 1-length(result_project$Error)/nrow(hetong_train))
