@@ -62,25 +62,16 @@ result_compute<-function(hetong_train, hetong_trainresult, column1, column2){
 
 ```
 
-```{r Read Data}
+```{r Calculate Accurate Rate of the Key}
 hetong_train <- read_delim('D:/Tianchi/data/FDDC_announcements_round1_train_result_20180616/hetong1.train', 
                            delim = '\t',col_names = c('公告id','甲方','乙方','项目名称','合同名称',
                                                       '合同金额上限','合同金额下限','联合体成员'))
 hetong_train <- as.data.frame(hetong_train)
-hetong_trainresult <- read.xlsx('D:/Tianchi/code/Save_key_value.xlsx', sheetName = 'page_1',
+hetong_trainresult <- read.xlsx('D:/Tianchi/code/Save_key.xlsx', sheetName = 'page_1',
                                 header = F, encoding = 'UTF-8')
 hetong_trainresult[,2] <- as.character(hetong_trainresult[,2])
 hetong_trainresult[,3] <- as.character(hetong_trainresult[,3])
-hetong_trainresult[,4] <- as.character(hetong_trainresult[,4])
-hetong_trainresult[,5] <- as.character(hetong_trainresult[,5])
-hetong_trainresult[,8] <- as.character(hetong_trainresult[,8])
-# ana_partya <- read.xlsx('D:/Tianchi/code/partya.xlsx', sheetName = 'page_1',
-#                                header = T, encoding = 'UTF-8')
-# ana_partya[,1] <-as.numeric(as.character(ana_partya[,1]))
 
-```
-
-```{r Calculate Accurate Rate of the Key}
 count <- 0
 Error <- c()
 vector_train <- c()
@@ -104,6 +95,25 @@ temp1 <- hetong_trainresult[hetong_trainresult[,1] %in% Error,]
 temp1 <- temp1[order(temp1[,1]),]
 write.csv(file = 'temp.csv', temp, row.names = F)
 write.csv(file = 'temp1.csv', temp1, row.names = F)
+```
+
+
+```{r Read Data}
+hetong_train <- read_delim('D:/Tianchi/data/FDDC_announcements_round1_train_result_20180616/hetong1.train', 
+                           delim = '\t',col_names = c('公告id','甲方','乙方','项目名称','合同名称',
+                                                      '合同金额上限','合同金额下限','联合体成员'))
+hetong_train <- as.data.frame(hetong_train)
+hetong_trainresult <- read.xlsx('D:/Tianchi/code/Save_key_value.xlsx', sheetName = 'page_1',
+                                header = F, encoding = 'UTF-8')
+hetong_trainresult[,2] <- as.character(hetong_trainresult[,2])
+hetong_trainresult[,3] <- as.character(hetong_trainresult[,3])
+hetong_trainresult[,4] <- as.character(hetong_trainresult[,4])
+hetong_trainresult[,5] <- as.character(hetong_trainresult[,5])
+hetong_trainresult[,8] <- as.character(hetong_trainresult[,8])
+# ana_partya <- read.xlsx('D:/Tianchi/code/partya.xlsx', sheetName = 'page_1',
+#                                header = T, encoding = 'UTF-8')
+# ana_partya[,1] <-as.numeric(as.character(ana_partya[,1]))
+
 ```
 
 ```{r Calculate F1 of the project}
