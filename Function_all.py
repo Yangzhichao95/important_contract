@@ -13,157 +13,191 @@ import jieba
 import jieba.posseg
 import csv
 import json
+import fool
 from Function_temp import *
 
-def bottom_up_dp_lcs(str_a, str_b):
-  """
-  longest common substring of str_a and str_b
-  """
-  if len(str_a) == 0 or len(str_b) == 0:
-    return 0
-  dp = [[0 for _ in range(len(str_b) + 1)] for _ in range(len(str_a) + 1)]
-  max_len = 0
-  lcs_str = ""
-  for i in range(1, len(str_a) + 1):
-    for j in range(1, len(str_b) + 1):
-      if str_a[i-1] == str_b[j-1]:
-        dp[i][j] = dp[i-1][j-1] + 1
-        max_len = max([max_len, dp[i][j]])
-        if max_len == dp[i][j]:
-          lcs_str = str_a[i-max_len:i]
-      else:
-        dp[i][j] = 0
-  return (lcs_str)
-
-def search_company(name, Company):
-    for i in Company['data']:
-        if i['secShortName'] == name.upper():
-            return(i['secFullName'])
-        if len(i) == 3:
-            if name.upper() in i['secShortNameChg']:
-                return(i['secFullName'])
-    for i in Company['data']:
-        if i['secShortName'] == name.upper()[0:4]:
-            return(i['secFullName'])
-        if len(i) == 3:
-            if name.upper()[0:4] in i['secShortNameChg']:
-                return(i['secFullName'])
-    return(name)
-    
-def find_full_name(soup, Company):
-    div = soup.findAll('div')
-    div_0 = div[0]
-    title = re.sub('\*', '\*', div_0.get('title'))
-    soupcontent = re.sub('<.+>|\n|\s', '', str(soup))
-    soupcontent = re.sub('<.+?>', '', soupcontent)
-    ## 找出公司全称
-    if re.search('(\d+)?([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])):
-        if re.search('号([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])):
-            name = re.search('号([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])).group(1)
+def find_full_name(soup):
+    # 找出公告发出公司
+    soupcontent = re.sub('\n|\s', '', soup.get_text())
+    _, nt = fool.analysis(soupcontent[0:110])
+    nt = nt[0]
+    fullname_ls = [x[3] for x in nt if x[2] == 'company' or x[2] == 'org']
+    fullname_ls_len = [len(x) for x in fullname_ls[:min(2, len(fullname_ls))]]
+    if len(fullname_ls_len):
+        fullname = fullname_ls[:max(2, len(fullname_ls))][fullname_ls_len.index(max(fullname_ls_len))]
+        if fullname:
+            return(fullname)
         else:
-            name = re.search('(\d+)?([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])).group(2)
-        if name[0] == '一' or name[0] == '号':
-            # 因格式问题造成的在开头或结尾可能多出一个一
-            full_name = name[1:]
-        elif name[len(name)-1] == '一':
-            full_name = name[1:(len(name)-1)]
-        else:
-            full_name = name
-    elif re.search('(简称|名称)(:|：)?([\w|*]+?)(公告|编号|编码|\(|\)|股票代码|证券代码)', soupcontent[0:120]):
-        name = re.search('(简称|名称)(:|：)?([\w|*]+?)(公告|编号|编码|\(|\)|股票代码|证券代码)', soupcontent[0:120]).group(3)
-        full_name = search_company(name, Company)
-    else:
-        full_name = search_company(div_0.get('title')[0:4], Company)
-    return (full_name)
+            return('公告里没有公司')
+    return('公告里没有公司')
+            
+def refine_company_list(company_list, simply_ls):
+    # simply_ls 主要为公司简称
+    # company_list 为NER识别出的公司或组织
+    # 去掉company_list 中带有simply_ls 的元素
+    for simply in simply_ls:
+        if simply in company_list:
+            index = company_list.index(simply)
+            company_list.pop(index)
+    return(company_list)
 
-def find_partya(content, div):
-    # 首先对于小标题只在html title里的情况
+
+def find_partya(soupcontent, div):
+    # 找甲方
     for i in div[1:]:
         if i.get('title'):
-            if re.search('采购人|采购方：|业主方|招标方|招标人|招标单位|发包方|发包人|甲方|买方', i.get('title')):
+            if re.search('采购人|采购方|业主方|招标方|招标人|招标单位|发包方|发包人|甲方|买方', i.get('title')):
                 if re.search('：', i.get('title')):
                     loc = i.get('title').index('：')
-                    if i.get('title')[(loc+1):] != '':
-                        return (i.get('title')[(loc+1):])
+                    if len(i.get('title')[(loc+1):]) > 1:
+                        raw = i.get('title')[(loc+1):]
+                        _, nt = fool.analysis(raw)
+                        nt = nt[0]
+                        raw_ls = [x[3] for x in nt if x[2] == 'company' or x[2] == 'org']
+                        if len(raw_ls):
+                            raw_ls_len = [len(x) for x in raw_ls]
+                            raw = raw_ls[raw_ls_len.index(max(raw_ls_len))]
+                            if raw:
+                                return (raw)
                 divcontent = i.get_text()
                 divcontent = re.sub('\n | ', '', divcontent)
                 divcontent_split = re.split('\n', divcontent)
                 divcontent_split = [x for x in divcontent_split if len(x) > 0]
-                if len(divcontent_split) == 1 and re.search('，|。|、', divcontent_split[0]) is None:
-                    return (divcontent_split[0])
-    #
-    reg_one = re.search('(和|与)([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|集团|室|部|中心|银行|管理处|人民政府)([\w|“|”|\n|（|）]*?)(签订|签署)', content)
-    reg_two = re.search('(收到|接到|获|获得|中标|参与)(了)?(由)?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位)?([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|集团|室|部|中心|银行|处|人民政府)', content)
-    reg_three = re.search('(公司|局|院|馆|委员会|集团|室|部|中心|银行|管理处|人民政府)?(与|和)?([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|集团|室|部|中心|银行|管理处|人民政府)((\(|（)(以)?下(简)?称(“|”|，|、|\w)*?“?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位))', content)
-    reg_four = re.search('(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|集团|室|部|中心|银行|管理处|人民政府)', content)
-    if reg_one:
-        if re.search('(与|和)([\w|\(|\)|（|）|\-|\.]+?)(公司)([\w|“|”|\n|（|）]*?)(签订|签署)', content):
-            partya_raw = re.search('(与|和)([\w|\(|\)|（|）|\-|\.]+?)(公司)([\w|“|”|\n|（|）]*?)(签订|签署)', content)
-        else:
-            partya_raw = re.search('(与|和)([\w|\(|\)|（|）|\-|\.]+?)(局|院|馆|委员会|集团|室|部|中心|银行|管理处|人民政府)([\w|“|”|\n|（|）]*?)(签订|签署)', content)
-        return(re.sub('甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位', '', partya_raw[2] + partya_raw[3]))
-    elif reg_two and re.search('招标', reg_two.group(5)) is None:
-        if reg_four and re.search('招标', reg_four.group(4)) is None:
-            if re.search('(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content):
-                partya_raw = re.search('(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content)
-                if re.search('招标', partya_raw.group(4)):
-                    partya_raw = re.search('(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(局|院|馆|委员会|集团|室|部|中心|银行|管理处|人民政府)', content)
-            else:
-                partya_raw = re.search('(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(局|院|馆|委员会|集团|室|部|中心|银行|管理处|人民政府)', content)
-            return(partya_raw.group(4) +partya_raw.group(5))
-        if re.search('(收到|接到|获|获得|中标|参与)(了)?(由)?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content):
-            raw = re.search('(收到|接到|获|获得|中标|参与)(了)?(由)?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content)
-            if re.search('招标', raw.group(5)):
-                # 246185的特殊情况
-                raw = re.search('(收到|接到|获|获得|中标|参与)(了)?(由)?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位)?([\w|\(|\)|（|）|\-|\.]+?)(局|院|馆|委员会|集团|室|部|中心|银行|处|人民政府)', content)
-        else:
-            raw = re.search('(收到|接到|获|获得|中标|参与)(了)?(由)?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位)?([\w|\(|\)|（|）|\-|\.]+?)(局|院|馆|委员会|集团|室|部|中心|银行|处|人民政府)', content)
-        if raw:
-            partya_raw = re.sub('项目为', '', raw.group(5) + raw.group(6))
-            return(re.sub('甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位','',partya_raw))
-        else:
-            return('')
-    elif reg_three or reg_four:
-        if reg_three and re.search('招标', reg_three.group(3)) is None:
-            if re.search('(公司|局|院|馆|委员会|集团|室|部|中心|银行|管理处|人民政府)?(与|和)?([\w|\(|\)|（|）|\-|\.]+?)(公司)((\(|（)(以)?下(简)?称(“|”|，|、|\w)*?“?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位))', content):
-                partya_raw = re.search('(公司|局|院|馆|委员会|集团|室|部|中心|银行|管理处|人民政府)?(与|和)?([\w|\(|\)|（|）|\-|\.]+?)(公司)((\(|（)(以)?下(简)?称(“|”|，|、|\w)*?“?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位))', content)
-            else:
-                partya_raw = re.search('(公司|局|院|馆|委员会|集团|室|部|中心|银行|管理处|人民政府)?(与|和)?([\w|\(|\)|（|）|\-|\.]+?)(局|院|馆|委员会|集团|室|部|中心|银行|管理处|人民政府)((\(|（)(以)?下(简)?称(“|”|，|、|\w)*?“?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位))', content)
-            return(partya_raw.group(3) +partya_raw.group(4))
-        elif reg_four and re.search('招标', reg_four.group(4)) is None:
-            if re.search('(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content):
-                partya_raw = re.search('(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content)
-                if re.search('招标', partya_raw.group(4)) or len(partya_raw.group(4)+partya_raw.group(5)) < 6:
-                    partya_raw = re.search('(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(局|院|馆|委员会|集团|室|部|中心|银行|管理处|人民政府)', content)
-            else:
-                partya_raw = re.search('(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(局|院|馆|委员会|集团|室|部|中心|银行|管理处|人民政府)', content)
-            if partya_raw:
-                return(partya_raw.group(4) +partya_raw.group(5))
-            else:
-                return('')
-        else:
-            return('')
-
+                if len(divcontent_split) == 1 and re.search('，|、', divcontent_split[0]) is None:
+                    raw = divcontent_split[0]
+                    _, nt = fool.analysis(raw)
+                    nt = nt[0]
+                    raw_ls = [x[3] for x in nt if x[2] == 'company' or x[2] == 'org']
+                    raw_ls_len = [len(x) for x in raw_ls]
+                    if len(raw_ls_len):
+                        raw = raw_ls[raw_ls_len.index(max(raw_ls_len))]
+                        if raw:
+                            return (raw)
+    soupcontent = re.sub('\n|\s', '', soupcontent.capitalize())
+    _, nt = fool.analysis(soupcontent)
+    nt = nt[0]
+    raw_ls = [x[3] for x in nt if (x[2] == 'company' or x[2] == 'org') and len(x[3]) >= 3 and x[0]>25 and re.search('招标|中标|投标|政府投资', x[3]) is None]
+    if len(raw_ls):
+        # 得到实体的一个list
+        simply_ls = re.findall('“(\w+?)”', soupcontent)
+        company_ls = refine_company_list(list(set(raw_ls)).copy(), simply_ls)
+        company_ls.sort(key = lambda x: len(x), reverse = True)
+        # 得到实体的结尾词
+        company_end = [x[(len(x)-2):] for x in company_ls]
+        company_end = list(set(company_end))
+        company_end = '(' + '|'.join(list(set(company_end))) + ')'
+        # 正则1
+        reg_one = re.search('([\w\(\)（）—~\-\.]+)' + company_end + '(\(|（)(以)?下(简)?称(：|“|”|，|、|\w)*?“?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位|采购人|采购方)', soupcontent)
+        if reg_one:
+            reg_one = reg_one.group()
+            if re.search('与|和|及', reg_one):
+                reg_one = re.search('(与|和|及).+', reg_one).group()
+            for comp in company_ls:
+                comp = re.sub('\(', '\(', comp); comp = re.sub('\)', '\)', comp); comp = re.sub('\-', '\-', comp); comp = re.sub('\.', '\.', comp); comp = re.sub('\*', '\*', comp)
+                if re.search(comp, reg_one):
+                    return(re.sub('\\\\', '',comp))
+        # 构建实体的一个dict并初始化
+        #company_dic = dict()
+        #for comp in company_ls:
+        #    company_dic[comp] = 0
+        # 正则2
+        reg_two = re.findall('(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位|采购人|采购方|项目实施机构|公司名称)(：|是|为)*([\w\(\)（）—~\-\.]*)'+ company_end, soupcontent)
+        if reg_two:
+            reg_two = [''.join(x) for x in reg_two]
+            for comp in company_ls:
+                comp = re.sub('\(', '\(', comp); comp = re.sub('\)', '\)', comp); comp = re.sub('\-', '\-', comp); comp = re.sub('\.', '\.', comp); comp = re.sub('\*', '\*', comp)
+                for reg in reg_two:
+                    if re.search(comp, reg):
+                        return(re.sub('\\\\', '',comp))
+            if len(reg_two) == 1:
+                reg = re.search('(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位|采购人|采购方|项目实施机构|公司名称)(：|是|为)*([\w\(\)（）—~\-\.]*)'+ company_end, reg_two[0])
+                if re.search('金额|项目|工程',reg.group(3)) is None:
+                    return(reg.group(3) + reg.group(4))
+        # 正则3
+        reg_three = re.findall('(收到|接到|获|获得|根据|依据|为)(了)?(由)?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位|采购人|采购方)?([\w\(\)（）—~\-\.]*)' + company_end + '([\w\(\)（）—~\-\.“”《》、]*)(中标)', soupcontent)
+        if reg_three:
+            reg_three = [''.join(x) for x in reg_three if re.search('招标代理|招标机构|招标公司', ''.join(x)) is None]
+            for comp in company_ls:
+                comp = re.sub('\(', '\(', comp); comp = re.sub('\)', '\)', comp); comp = re.sub('\-', '\-', comp); comp = re.sub('\.', '\.', comp); comp = re.sub('\*', '\*', comp)
+                for reg in reg_three:
+                    if re.search(comp, reg):
+                        return(re.sub('\\\\', '',comp))
+            if len(reg_three) == 1:
+                reg = re.search('(收到|接到|获|获得|根据|依据|为)(了)?(由)?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位|采购人|采购方)?([\w\(\)（）—~\-\.]*)' + company_end + '([\w\(\)（）—~\-\.“”《》、]*)(中标)', reg_three[0])
+                if re.search('金额|项目|工程',reg.group(5)) is None:
+                    return(reg.group(5) + reg.group(6))
+        # 正则4
+        reg_four = re.findall('(收到|和|与|、)([\w\(\)（）—~\-\.]*?)' + company_end + '([\w\(\)（）—~\-\.“”：]*?)(签订|签署|签定)', soupcontent)
+        if reg_four:
+            reg_four = [''.join(x) for x in reg_four if re.search('招标代理|招标机构', ''.join(x)) is None]
+            for comp in company_ls:
+                comp = re.sub('\(', '\(', comp); comp = re.sub('\)', '\)', comp); comp = re.sub('\-', '\-', comp); comp = re.sub('\.', '\.', comp); comp = re.sub('\*', '\*', comp)
+                for reg in reg_four:
+                    if re.search(comp, reg):
+                        return(re.sub('\\\\', '',comp))
+            if len(reg_four) == 1:
+                reg = re.search('(收到|和|与|、)([\w\(\)（）—~\-\.]*?)' + company_end + '([\w\(\)（）—~\-\.“”：]*?)(签订|签署|签定)', reg_four[0])
+                if re.search('金额|项目|工程',reg.group(2)) is None:
+                    return(reg.group(2) + reg.group(3))
+        # 正则5
+        reg_five = re.findall('为([\w\(\)（）—~\-\.]*?)' + company_end +'([\w\(\)（）—~\-\.“”：《》]*?)(中标候选人|中标单位)', soupcontent)
+        if reg_five:
+            reg_five = [''.join(x) for x in reg_five]
+            for comp in company_ls:
+                comp = re.sub('\(', '\(', comp); comp = re.sub('\)', '\)', comp); comp = re.sub('\-', '\-', comp); comp = re.sub('\.', '\.', comp); comp = re.sub('\*', '\*', comp)
+                for reg in reg_five:
+                    if re.search(comp, reg):
+                        return(re.sub('\\\\', '',comp))
+            if len(reg_five) == 1:
+                reg = re.search('([\w\(\)（）—~\-\.]*?)' + company_end +'([\w\(\)（）—~\-\.“”：《》]*?)(中标候选人|中标单位)', reg_five[0])
+                if re.search('金额|项目|工程',reg.group(1)) is None:
+                    return(reg.group(1) + reg.group(2))
+        # 正则6
+        reg_six = re.findall('(“[\w\(\)（）—~\-\.、]+?”)|(《[\w\(\)（）—~\-\.、]+?》)', soupcontent)
+        if reg_six:
+            reg_six = [''.join(x) for x in reg_six if len(''.join(x)) > 10]
+            for comp in company_ls:
+                comp = re.sub('\(', '\(', comp); comp = re.sub('\)', '\)', comp); comp = re.sub('\-', '\-', comp); comp = re.sub('\.', '\.', comp); comp = re.sub('\*', '\*', comp)
+                for reg in reg_six:
+                    if re.search(comp, reg):
+                        return(re.sub('\\\\', '',comp))
+        # 正则7
+        reg_seven = re.findall('(收到|接到|获|获得|中标|参与|参加)(了)?(由)?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位|采购人|采购方)?([\w\(\)（）—~\-\.]*)' + company_end, soupcontent[100:])
+        if reg_seven:
+            reg_seven = [''.join(x) for x in reg_seven if re.search('招标代理|招标机构', ''.join(x)) is None]
+            for comp in company_ls:
+                comp = re.sub('\(', '\(', comp); comp = re.sub('\)', '\)', comp); comp = re.sub('\-', '\-', comp); comp = re.sub('\.', '\.', comp); comp = re.sub('\*', '\*', comp)
+                for reg in reg_seven:
+                    if re.search(comp, reg):
+                        return(re.sub('\\\\', '',comp))
+            if len(reg_seven) == 1:
+                reg = re.search('(收到|接到|获|获得|中标|参与|参加)(了)?(由)?(甲方|买方|销售方|业主方|业主|招标人|招标单位|招标方|发包人|发包方|分包人|采购单位|采购人|采购方)?([\w\(\)（）—~\-\.]*)' + company_end, reg_seven[0])
+                if re.search('金额|项目|工程',reg.group(5)) is None:
+                    return(reg.group(5) + reg.group(6))
+        return('')
+    else:
+        return('')
 def find_partyb(full_name, content):
+    # 找乙方
     lb = []
-    reg_one = re.search('([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|集团|室|部|中心|银行)((\(|（)(以)?下(简)?称(“|”|，|、|\w)*?“?(乙方|承包人|承包方|卖方|中标人))', content)
-    reg_two = re.search('(乙方|承包人|承包方|卖方|中标人)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|集团|室|部|中心|银行)', content)
+    reg_one = re.search('([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|集团|室|部|中心)((\(|（)(以)?下(简)?称(“|”|，|、|\w)*?“?(乙方|承包人|承包方|卖方|中标人))', content)
+    reg_two = re.search('(乙方|承包人|承包方|卖方|中标人)(：|是|为|\)|）)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|集团|室|部|中心)', content)
     if reg_one or reg_two:
         if reg_one:
             if re.search('([\w|\(|\)|（|）|\-|\.]+?)(公司)((\(|（)(以)?下(简)?称(“|”|，|、|\w)*?“?(乙方|承包人|承包方|卖方|中标人))', content):
                 partyb_raw = re.search('([\w|\(|\)|（|）|\-|\.]+?)(公司)((\(|（)(以)?下(简)?称(“|”|，|、|\w)*?“?(乙方|承包人|承包方|卖方|中标人))', content)
             else:
-                partyb_raw = re.search('([\w|\(|\)|（|）|\-|\.]+?)(局|院|馆|委员会|集团|室|部|中心|银行)((\(|（)(以)?下(简)?称(“|”|，|、|\w)*?“?(乙方|承包人|承包方|卖方|中标人))', content)
+                partyb_raw = re.search('([\w|\(|\)|（|）|\-|\.]+?)(局|院|馆|委员会|集团|室|部|中心)((\(|（)(以)?下(简)?称(“|”|，|、|\w)*?“?(乙方|承包人|承包方|卖方|中标人))', content)
             if full_name in partyb_raw.group() or len(partyb_raw.group(1) + partyb_raw.group(2)) < 6:
                 lb.append(full_name)
             else:
                 result = re.sub('\w+子公司', '', partyb_raw.group(1) + partyb_raw.group(2))
                 lb.append(result)
         elif reg_two and re.search('和|与|合同',reg_two.group()) is None:
-            if  re.search('(乙方|承包人|承包方|卖方|中标人)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content):
-                partyb_raw = re.search('(乙方|承包人|承包方|卖方|中标人)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content)
+            if  re.search('(乙方|承包人|承包方|卖方|中标人)(：|是|为|\)|）)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content):
+                partyb_raw = re.search('(乙方|承包人|承包方|卖方|中标人)(：|是|为|\)|）)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content)
             else:
-                partyb_raw = re.search('(乙方|承包人|承包方|卖方|中标人)(：|是|为)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(局|院|馆|委员会|集团|室|部|中心|银行)', content)
+                partyb_raw = re.search('(乙方|承包人|承包方|卖方|中标人)(：|是|为|\)|）)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(局|院|馆|委员会|集团|室|部|中心)', content)
             if full_name in partyb_raw.group() or len(partyb_raw.group(4) + partyb_raw.group(5)) < 6:
                 lb.append(full_name)
             else:
@@ -174,14 +208,19 @@ def find_partyb(full_name, content):
     elif re.search('子公司|全资公司', content):
         if len(re.findall('(子公司|全资公司)(\w*?|\w*?(（\w*）|\(\w*\))\w*?)(公司)', content)):
             lb_raw = re.findall('(子公司|全资公司)(\w*?|\w*?(（\w*）|\(\w*\))\w*?)(公司)', content)
-            lb_refine = [x[1] + x[3] for x in lb_raw if re.search('(和|或)', ''.join(x)) is None]
-            _ = [lb.append(x) for x in list(set(lb_refine))]
-        elif len(re.findall('(子公司|全资公司)(\w+|\w+(（\w*）|\(\w*\))\w*)(局|院|馆|委员会|集团|室|部|中心|银行)', content)):
-            lb_raw = re.findall('(子公司|全资公司)(\w+|\w+(（\w*）|\(\w*\))\w*)(局|院|馆|委员会|集团|室|部|中心|银行)', content)
-            lb_refine = [x[1] + x[3] for x in lb_raw if re.search('(和|或)', ''.join(x)) is None]
-            _ = [lb.append(x) for x in list(set(lb_refine))]
+            lb_refine = [x[1] + x[3] for x in lb_raw if re.search('(与|和|或|中标)', ''.join(x)) is None]
+            if len(lb_refine):
+                _ = [lb.append(x) for x in list(set(lb_refine)) if re.search('子公司', x) is None]
+            elif len(re.findall('(子公司|全资公司)(\w+|\w+(（\w*）|\(\w*\))\w*)(局|院|馆|委员会|集团|室|部|中心)', content)):
+                lb_raw = re.findall('(子公司|全资公司)(\w+|\w+(（\w*）|\(\w*\))\w*)(局|院|馆|委员会|集团|室|部|中心)', content)
+                lb_refine = [x[1] + x[3] for x in lb_raw if re.search('(与|和|或|中标)', ''.join(x)) is None]
+                _ = [lb.append(x) for x in list(set(lb_refine)) if re.search('子公司', x) is None]
+        elif len(re.findall('(子公司|全资公司)(\w+|\w+(（\w*）|\(\w*\))\w*)(局|院|馆|委员会|集团|室|部|中心)', content)):
+            lb_raw = re.findall('(子公司|全资公司)(\w+|\w+(（\w*）|\(\w*\))\w*)(局|院|馆|委员会|集团|室|部|中心)', content)
+            lb_refine = [x[1] + x[3] for x in lb_raw if re.search('(与|和|或|中标)', ''.join(x)) is None]
+            _ = [lb.append(x) for x in list(set(lb_refine)) if re.search('子公司', x) is None]
     return (lb)
-
+    
       
 def tiejian_key(soup):
     # 只匹配中国铁建
@@ -275,29 +314,8 @@ def part_join(word, part):
 
 
 def match_key(soup, Company):
-    div = soup.findAll('div')
-    div_0 = div[0]
-    title = re.sub('\*', '\*', div_0.get('title'))
-    soupcontent = re.sub('<.+>|\n|\s', '', str(soup))
-    soupcontent = re.sub('<.+?>', '', soupcontent)
-    ## 找出公司全称
-    if re.search('(\d+)?([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])):
-        if re.search('号([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])):
-            name = re.search('号([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])).group(1)
-        else:
-            name = re.search('(\d+)?([\w|（|）|\(|\)]+)' + re.sub('（一）|（二）|（三）|（四）|（五）|“|”', '', title), re.sub('“|”', '', soupcontent[0:120])).group(2)
-        if name[0] == '一' or name[0] == '号':
-            # 因格式问题造成的在开头或结尾可能多出一个一
-            full_name = name[1:]
-        elif name[len(name)-1] == '一':
-            full_name = name[1:(len(name)-1)]
-        else:
-            full_name = name
-    elif re.search('(简称|名称)(:|：)?([\w|*]+?)(公告|编号|编码|\(|\)|股票代码|证券代码)', soupcontent[0:120]):
-        name = re.search('(简称|名称)(:|：)?([\w|*]+?)(公告|编号|编码|\(|\)|股票代码|证券代码)', soupcontent[0:120]).group(3)
-        full_name = search_company(name, Company)
-    else:
-        full_name = search_company(div_0.get('title')[0:4], Company)
+    # Company 没有用
+    full_name = find_full_name(soup)
     # 对于中国铁建和中国北车的公告
     if full_name[0:4] == '中国铁建':
         key = tiejian_key(soup)
@@ -307,8 +325,7 @@ def match_key(soup, Company):
         key = beiche_key(soup, full_name)
         if type(key) is zip:
             return(key)
-    soupcontent = re.sub('<.+>|\n | ', '', str(soup))
-    soupcontent = re.sub('<.+?>', '', soupcontent)
+    soupcontent = re.sub('\n | ', '', soup.get_text())
     partya = []
     partyb = []
     combo = []
@@ -317,80 +334,38 @@ def match_key(soup, Company):
     soupcontent = re.sub('本公司|我公司|占公司|对公司|是公司|影响公司|为公司|项目公司|后公司|提升公司|上述公司|及公司', '', soupcontent)
     lb = find_partyb(full_name, soupcontent)
     soupcontent = re.sub('控股子公司|子公司', '', soupcontent)
-    if len(lb) <= 1:
+    #if len(lb) <= 1:
         # 如果只有一个或者没有子公司，即一个乙方
-        if len(lb) == 0:
-            partyb.append(full_name)
-        else:
-            partyb.append(lb[0])
-        if re.search('联合体|联合中标|分别收到|丙方|共同', soupcontent):
-            # 如果联合体存在
-            content_split = re.split('\n|，|。', soupcontent)
-            content_split = [x for x in content_split if len(x) > 0]
-            for content in content_split:
-                if re.search('联合体成员：', content):
-                    combo_raw = re.search('联合体成员：([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|集团|室|部|中心|银行)', content)
-                    combo.append(combo_raw.group(1) + combo_raw.group(2))
-                    break
-                if re.search('联合体|联合中标|分别收到|丙方|共同', content):
-                    loc = content.index(re.search('联合体|联合中标|分别收到|丙方|共同', content).group())
-                    combo_raw = re.findall('(与|和|、)([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|集团|室|部|中心|银行)', content[:loc])
-                    combo_raw = [x[1] + x[2] for x in combo_raw]
-                    combo_raw = [x for x in combo_raw if len(x) > 5]
-                    combo.append('、'.join(combo_raw))
-                    break
-        if len(combo) == 0:
-            combo.append('')
-        pat_temp = partyb[0] + '|' + full_name + '|' + re.sub('、', '|', combo[0])
-        pat_temp = re.sub('\(', '\(', pat_temp)
-        pat_temp = re.sub('\)', '\)', pat_temp)
-        soupcontent = re.sub(pat_temp, '', soupcontent)
-        #寻找甲方
-        result_a = find_partya(soupcontent, div)
-        if result_a is not None:
-            partya.append(result_a)
-        else:
-            content_split = re.split('\n|,', soupcontent)
-            #content_split = [re.sub(pat_temp, '', x) for x in content_split if len(x) > 0]
-            content_split = [x for x in content_split if len(x) > 0]
-            content_split = [x for x in content_split if re.search('([\w|\(|\)|（|）]+)(公司|局|院|馆|委员会|集团|室|部|中心|银行)', x)]
-            company_split = [re.search('([\w|\(|\)|（|）]+)(公司|局|院|馆|委员会|集团|室|部|中心|银行)', x).group() for x in content_split]
-            if len(company_split) == 1 and len(company_split[0]) < 6:
-                partya.append('')
-            elif len(company_split) == 1:
-                partya_raw = company_split[0]
-                seg = jieba.posseg.cut(partya_raw)
-                word = []
-                part = []
-                for i in seg:
-                    word.append(i.word)
-                    part.append(i.flag)
-                join_company = part_join(word.copy(), part.copy())
-                if re.search('招标', join_company):
-                    partya.append('')
-                else:
-                    partya.append(join_company)
-            else:
-                # 可以对以下简称在做个搜索
-                dic_company = dict()
-                for i in range(len(company_split)):
-                    for j in range(i,len(company_split)):
-                        sub_result = bottom_up_dp_lcs(company_split[i], company_split[j])
-                        if re.search('公司|局|院|馆|委员会|集团|室|部|中心|银行', sub_result):
-                            if sub_result in dic_company:
-                                dic_company[sub_result] = dic_company[sub_result] + 1
-                            else:
-                                dic_company[sub_result] = 1
-                if len(dic_company) == 0:
-                    partya.append('')
-                else:
-                    for key in dic_company:
-                        if len(key) < 6 or re.search('招标', key):
-                            dic_company[key] = 0
-                    if max(zip(dic_company.values(), dic_company.keys()))[0] == 0:
-                        partya.append('')
-                    else:
-                        partya.append(max(dic_company, key=dic_company.get))                                
-        return(zip(refine_partya(partya), partyb, combo)) 
+    if len(lb) == 0:
+        partyb.append(full_name)
+    else:
+        partyb.append(lb[0])
+    if re.search('联合体|联合中标|分别收到|丙方|共同', soupcontent):
+        # 如果联合体存在
+        content_split = re.split('\n|，|。', soupcontent)
+        content_split = [x for x in content_split if len(x) > 0]
+        for content in content_split:
+            if re.search('联合体成员：', content):
+                combo_raw = re.search('联合体成员：([\w、]+)', content)
+                combo.append(combo_raw.group(1))
+                break
+            if re.search('联合体|联合中标|分别收到|丙方|共同', content):
+                loc = content.index(re.search('联合体|联合中标|分别收到|丙方|共同', content).group())
+                combo_raw = re.findall('(与|和|、)([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|室|部|中心|银行)', content[:loc])
+                combo_raw = [x[1] + x[2] for x in combo_raw]
+                combo_raw = [x for x in combo_raw if len(x) > 5]
+                combo.append('、'.join(combo_raw))
+                break
+    if len(combo) == 0:
+        combo.append('')
+    pat_temp = partyb[0] + '|' + re.sub('、', '|', combo[0])
+    pat_temp = re.sub('\(', '\(', pat_temp); pat_temp = re.sub('\)', '\)', pat_temp)
+    soupcontent = re.sub(pat_temp, '', soupcontent)
+    div = soup.findAll('div')
+    #寻找甲方
+    result_a = find_partya(soupcontent, div)
+    if result_a is not None:
+        partya.append(result_a)
+    else:
+        partya.append('')
     return(zip(refine_partya(partya), partyb, combo))
-

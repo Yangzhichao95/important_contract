@@ -10,7 +10,7 @@ This is a Temp file for the function match project contract and value
 import re
 
 def refine_output_contract(contract):
-    # Input is a list
+    # 修改合同最终输出格式
     contract_return = []
     for i in contract:
         contract_temp = re.sub('&lt;', '<', i)
@@ -23,7 +23,7 @@ def refine_output_contract(contract):
     return (contract_return)
 
 def refine_output_project(project):
-    # The end of the project should not be figure
+    # 修改项目最终输出格式
     project_return = []
     for i in project:
         project_temp = re.sub('“|”|/', '', i)
@@ -81,16 +81,17 @@ def convert_chinese_digits_to_arabic(chinese_digits, chs_arabic_map):
     return (str(result) + '元')
 
 def refine_money(str_money):
+    # 修改金钱格式
     if re.search('[零一二三四五六七八九〇壹贰叁肆伍陆柒捌玖拾佰仟萬億幺]', str_money):
         str_money = convert_chinese_digits_to_arabic(str_money, chs_arabic_map)
     money_raw = re.search('((\d*)(，|,)?)*(\d+)(\.?)(\d*)', str_money).group()
     money_raw = float(re.sub('，|,', '', money_raw))
-    unit = re.search('亿|千万|百万|十万|万|千|百|十|元', str_money).group()
+    unit = re.search('亿|惩|千万|百万|十万|万|千|百|十|元', str_money).group()
     if re.search('\.(\d*)', str(money_raw)):
         num_decimal = len(re.search('\.(\d*)', str(money_raw)).group(1))
     else:
         num_decimal = 0
-    if unit == '亿':
+    if unit == '亿' or unit == '惩':
         money = round(money_raw*100000000, max(num_decimal-8, 0))
     elif unit == '千万':
         money = round(money_raw*10000000, max(num_decimal-7, 0))
@@ -110,8 +111,10 @@ def refine_money(str_money):
         money = money_raw
     if money < 5000:
         return ''
+    if float(money) == int(money):
+        return (int(money))
     else:
-        return (money)
+        return (float(money))
     
 def refine_up_low(str_money):
     # 对于上下限不同的金额，提取出两个不同的金额
@@ -123,34 +126,25 @@ def refine_up_low(str_money):
 
     
 def refine_partya(partya):
-    for i in range(len(partya)):
-        if re.search('是', partya[i]):
-            j = partya[i]
-            partya[i] = partya[i][(j.index('是')+1):]
-        if re.search('与', partya[i]):
-            j = partya[i]
-            partya[i] = partya[i][(j.index('与')+1):]
-        if re.search('的', partya[i]):
-            j = partya[i]
-            partya[i] = partya[i][(j.index('的')+1):]
+    # 修改甲方的中间输出
     partya = [re.sub('\-', '', x) for x in partya]
     #partya = [re.sub('（', '(', x) for x in partya]
     #partya = [re.sub('）', ')', x) for x in partya]
-    for i in range(len(partya)):
-        if len(partya[i]) < 6:
-            partya[i] = ''
     return (partya)
 
 def refine_output_partya(partya):
+    # 修改甲方的最终输出
     partya = [re.sub('（', '(', x) for x in partya]
     partya = [re.sub('）', ')', x) for x in partya]
     return (partya)
 
 
 def refine_output_partyb(partyb):
+    # 修改乙方的最终输出
     partyb = [re.sub('（', '(', x) for x in partyb]
     partyb = [re.sub('）', ')', x) for x in partyb]
     partyb = [re.sub('\(.*\)', '', x) for x in partyb]
+    partyb = [re.sub('\d', '', x) for x in partyb]
     # For some case
     partyb = [re.sub('\)|）', '', x) for x in partyb]
     return (partyb)
@@ -167,7 +161,7 @@ def tiejian_key_value(soup):
     pat_partya = '公司收到(.+?)(发出的)?中标通知书'
     pat_partyb = '(子公司|、|及|和)([\w|（|）|\(|\)]+?)(公司)'
     pat_project = '中标(.+?)(，|。|；)'
-    pat_money = '((\d*)(，|,)?)*(\d+)(\.?)(\d*) *(亿|千万|百万|十万|万|千|百|十)?元'
+    pat_money = '((\d*)(，|,)?)*(\d+)(\.?)(\d*) *(亿|惩|千万|百万|十万|万|千|百|十)?元'
     ob_partya = []
     ob_partyb = []
     ob_project = []
@@ -210,7 +204,7 @@ def beiche_key_value(soup, fullname):
     pat_partya = '与(.+?)签订(了)?'
     pat_partyb = '(子公司|、|及|和)([\w|（|）|\(|\)]+?)(公司)'
     pat_contract = '签订(了)?([\w|\-|\.|，|,]+?)(合同)'
-    pat_money = '((\d*)(，|,)?)*(\d+)(\.?)(\d*) *(亿|千万|百万|十万|万|千|百|十)?元'
+    pat_money = '((\d*)(，|,)?)*(\d+)(\.?)(\d*) *(亿|惩|千万|百万|十万|万|千|百|十)?元'
     ob_partya = []
     ob_partyb = []
     ob_project = []
@@ -275,6 +269,7 @@ def beiche_key_value(soup, fullname):
     return(zip(ob_partya, ob_partyb, ob_project, ob_contract, ob_money, ob_money, ob_combo))
 
 def find_contract(soup):
+    # 寻找合同
     contract = ''
     pat_contract = '《.+?》'
     soupcontent = re.sub('<.+>|\n | ', '', str(soup))
@@ -332,16 +327,16 @@ def find_contract(soup):
     return('')
 
 def find_project(soup, contract):
+    # 寻找项目名称
     project = ''
-    soupcontent = re.sub('<.+>|\n | ', '', str(soup))
-    soupcontent = re.sub('<.+?>', '', soupcontent)
+    soupcontent = re.sub('\n | ', '', soup.get_text())
     div = soup.findAll('div')
     strline = ''
     for line in div[1:]:
         # 1 在title里面找
         if line.get('title') and ('、项目名称' in line.get('title') or '、工程名称' in line.get('title') or '、中标项目' in line.get('title') or '、采购项目名称' in line.get('title')):
-            if re.search('：([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)', line.get('title')):
-                project = re.search('：([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)', line.get('title')).group(1)
+            if re.search('：([、\w—\-~#·\(\)（）\[\]/\+：]+)', line.get('title')):
+                project = re.search('：([、\w—\-~#·\(\)（）\[\]/\+：]+)', line.get('title')).group(1)
                 return(project)
             else:
                 strline = line.get_text()
@@ -355,53 +350,55 @@ def find_project(soup, contract):
         if line.get('title') and '项目' in line.get('title'):
             strline = re.sub('<.+>|\n | ', '', str(line))
             strline = re.sub('<.+>', '', strline)
-            if re.search('(项目名称|工程名称|中标内容|中标名称)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(，|。|；|\n)', strline):
-                project = re.search('(项目名称|工程名称|中标内容|中标名称)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(，|。|；|\n)', strline).group(3)
-                return (project)        
-    if re.search('(项目名称|工程名称|中标内容|中标名称)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(，|。|；|\n)', soupcontent):
-        project = re.search('(项目名称|工程名称|中标内容|中标名称)\w*：(\n)*([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(，|。|；|\n)', soupcontent).group(3)
-        # if len(project) > 7:
-        return (project)
-    if re.search('为([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)的?预?(中标单位|中标人)', soupcontent):
-        project = re.search('为([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)的?预?(中标单位|中标人)', soupcontent).group(1)
-        # if len(project) > 7:
-        return (project)
-    if re.search('中标项目为([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)(项目|，|。)', soupcontent):
-        content = re.search('中标项目为([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)(项目|，|。)', soupcontent)
-        if content.group(2) is '项目':
+            if re.search('(项目名称|工程名称|中标名称|中标内容|中标项目)\w*：(\n)*([、\w—\-~#·\(\)（）\[\]/\+：]+)(，|。|；|\n)', strline):
+                project = re.search('(项目名称|工程名称|中标名称|中标内容|中标项目)\w*：(\n)*([、\w—\-~#·\(\)（）\[\]/\+：]+)(，|。|；|\n)', strline).group(3)
+                if re.search('中标', project) is None:
+                    return (project)        
+    if re.search('(项目名称|工程名称|中标名称|中标内容|中标项目)\w*：(\n)*([、\w—\-~#·\(\)（）\[\]/\+：]+)(，|。|；|\n)', soupcontent):
+        project = re.search('(项目名称|工程名称|中标名称|中标内容|中标项目)\w*：(\n)*([、\w—\-~#·\(\)（）\[\]/\+：]+)(，|。|；|\n)', soupcontent).group(3)
+        if len(project) > 7 and re.search('中标', project) is None:
+            return (project)
+    if re.search('为([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)的?预?(中标单位|中标人|中标候选人)', soupcontent):
+        project = re.search('为([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)的?预?(中标单位|中标人|中标候选人)', soupcontent).group(1)
+        if len(project) > 7 and re.search('中标|推荐', project) is None:
+            return (project)
+    if re.search('中标项目为([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)(项目|工程|标段|采购.标|采购|活动|，|。)', soupcontent):
+        content = re.search('中标项目为([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]]+?)(项目|工程|标段|采购.标|采购|活动|，|。)', soupcontent)
+        if re.search('，|。', content.group(2)) is None:
             project = content.group(1) + content.group(2)
         else:
             project = content.group(1)
-        # if len(project) > 7:
-        return (project)
-    if re.search('中标([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(项目|工程|采购|活动|标段|）)', soupcontent):
-        project_raw = re.findall('中标([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(项目|工程|采购|活动|标段|）)', soupcontent)
-        project_raw = [x[0] + x[1] for x in project_raw]
-        project_raw = [x for x in project_raw if len(x) > 7 and re.search('通知书', x) is None]
-        if len(project_raw) > 0:
-            len_project_raw = [len(x) for x in project_raw]
-            return(project_raw[len_project_raw.index(max(len_project_raw))])
-    if re.search('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)”', soupcontent):
-        loc = [[i.start(), i.end()] for i in re.finditer('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)”', soupcontent)]
+        if len(project) > 7 and re.search('中标', project) is None:
+            return (project)
+    if re.search('“([、\w—\-~#·\(\)（）\[\]/\+：]+)”(.{2})', soupcontent):
+        loc = [[i.start(), i.end()] for i in re.finditer('“([、\w—\-~#·\(\)（）\[\]/\+：]+)”(\w{2})', soupcontent)]
         content = []
         for j in range(len(loc)):
             if j == 0:
                 content.append(soupcontent[max(0, loc[j][0]-5) : loc[j][1]])
             else:
                 content.append(soupcontent[max(0, loc[j][0]-5, loc[j-1][1]) : loc[j][1]])
-        content = [re.search('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(项目|采购|工程|”)', x).group() for x in content if re.search('以下简称|公示|公告|名单', x) is None and re.search('“([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+)(项目|采购|工程|”)', x)]
-        content = [x for x in content if re.search('项目|采购|工程', x)]
+        content = [re.search('“([、\w—\-~#·\(\)（）\[\]/\+：]+)(项目|标段|采购.标|采购|工程|”项目|”)', x).group() for x in content if re.search('以下简称|公示|公告|名单', x) is None and re.search('“([、\w—\-~#·\(\)（）\[\]/\+：]+)(项目|标段|采购.标|采购|工程|”项目|”)', x)]
+        content = [x for x in content if re.search('项目|标段|采购.标|采购|工程', x)]
         if len(content) > 0 and len(content[0]) > 7:
             #只取第一个
             return(content[0])
-    if re.search('在([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+?)(项目|工程)中', soupcontent):
-        content = re.search('在([、|\w|—|\-|~|#|·|\(|\)|（|）|\[|\]|/|\+]+?)(项目|工程)中', soupcontent)
+    if re.search('中标([、\w—\-~#·\(\)（）\[\]/\+：]+)(项目|工程|标段|采购.标|采购|活动|）)', soupcontent):
+        project_raw = re.findall('中标([、\w—\-~#·\(\)（）\[\]/\+：]+)(项目|工程|标段|采购.标|采购|活动|）)', soupcontent)
+        project_raw = [x[0] + x[1] for x in project_raw]
+        project_raw = [x for x in project_raw if len(x) > 7 and re.search('通知书', x) is None]
+        if len(project_raw) > 0:
+            len_project_raw = [len(x) for x in project_raw]
+            return(project_raw[len_project_raw.index(max(len_project_raw))])
+    if re.search('在([、\w—\-~#·\(\)（）\[\]/\+：]+?)(项目|工程|标段|采购.标|采购)中', soupcontent):
+        content = re.search('在([、\w—\-~#·\(\)（）\[\]/\+：]+?)(项目|工程|标段|采购.标|采购)中', soupcontent)
         project = content.group(1) + content.group(2)
         if len(project) > 7:
             return (project)
     return('')
 
 def find_money(soup):
+    #寻找金钱
     #pat_up_low_foreign = '((\d*)(，|,)?)*(\d+)(\.?)(\d*) *(—|\-|~)((\d*)(，|,)?)*(\d+)\.?(\d*)(亿|千万|百万|十万|万|千|百|十)?\w?元'
     pat_foreign = '((?![百千万佰仟萬亿億])[零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬亿億幺]+?|((\d*)(，|,)?)*(\d+)(\.?)(\d*)(亿|千万|百万|十万|万|千|百|十)?)\w?元'
     #pat = '([零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬亿億幺]+?|((\d*)(，|,)?)*(\d+)(\.?)(\d*)(亿|千万|百万|十万|万|千|百|十)?)\w?元'
