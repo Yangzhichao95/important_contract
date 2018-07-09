@@ -51,10 +51,22 @@ def convert_chinese_digits_to_arabic(chinese_digits, chs_arabic_map):
         :param chinese_digits: 待转换的中文表达数字
         :return:转换结果
     """
+    # 如果chinese_digits中有角分，先将元与角分分离
+    yuan_index = chinese_digits.index('元')
+    jiao_fen = chinese_digits[(yuan_index+1):]
+    jiao = 0
+    fen = 0
+    if len(jiao_fen):
+        jiao_fen_reg = re.search('([零一二三四五六七八九〇壹贰叁肆伍陆柒捌玖]角)?([零一二三四五六七八九〇壹贰叁肆伍陆柒捌玖]分)?', jiao_fen)
+        if jiao_fen_reg.group(1):
+            jiao = chs_arabic_map[jiao_fen_reg.group(1)[0]]/10
+        if jiao_fen_reg.group(2):
+            fen = chs_arabic_map[jiao_fen_reg.group(2)[0]]/100
+    jiaofen = jiao + fen
     result = 0
     tmp = 0
     hnd_mln = 0
-    for count in range(len(chinese_digits)):
+    for count in range(len(chinese_digits[:(yuan_index+1)])):
         curr_char = chinese_digits[count]
         curr_digit = chs_arabic_map.get(curr_char, None)
         if curr_digit is not None:
@@ -75,10 +87,10 @@ def convert_chinese_digits_to_arabic(chinese_digits, chs_arabic_map):
             elif curr_digit is not None:
                 tmp = tmp*10 + curr_digit
             else:
-                return result
+                return (str(result + jiaofen) + '元')
     result = result + tmp
     result = result + hnd_mln
-    return (str(result) + '元')
+    return (str(result + jiaofen) + '元')
 
 def refine_money(str_money):
     # 修改金钱格式
@@ -400,12 +412,13 @@ def find_project(soup, contract):
 def find_money(soup):
     #寻找金钱
     #pat_up_low_foreign = '((\d*)(，|,)?)*(\d+)(\.?)(\d*) *(—|\-|~)((\d*)(，|,)?)*(\d+)\.?(\d*)(亿|千万|百万|十万|万|千|百|十)?\w?元'
-    pat_foreign = '((?![百千万佰仟萬亿億])[零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬亿億幺]+?|((\d*)(，|,)?)*(\d+)(\.?)(\d*)(亿|千万|百万|十万|万|千|百|十)?)\w?元'
+    pat_foreign = '((?![百千万佰仟萬亿億])[零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬亿億幺]+(元|角|分))|((\d*)(，|,)?)*(\d+)(\.?)(\d*)(亿|千万|百万|十万|万|千|百|十)?\w?元'
+    pat_foreign = '((?![百千万佰仟萬亿億])(零|一|二|三|四|五|六|七|八|九|十|百|千|万|〇|壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|佰|仟|萬|亿|億|幺)+(元)(零|一|二|三|四|五|六|七|八|九|十|百|千|万|〇|壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|佰|仟|萬|亿|億|幺)?(角)?(零|一|二|三|四|五|六|七|八|九|十|百|千|万|〇|壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|佰|仟|萬|亿|億|幺)?(分)?)|((\d*)(，|,)?)*(\d+)(\.?)(\d*)(亿|千万|百万|十万|万|千|百|十)?\w?元'
     #pat = '([零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬亿億幺]+?|((\d*)(，|,)?)*(\d+)(\.?)(\d*)(亿|千万|百万|十万|万|千|百|十)?)\w?元'
     #pat_up_low = '((\d*)(，|,)?)*(\d+)(\.?)(\d*)(—|\-|~)((\d*)(，|,)?)*(\d+)\.?(\d*) *(亿|千万|百万|十万|万|千|百|十)?元'
-    pat_money = '((?![百千万佰仟萬亿億])[零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬亿億幺]+?|((\d*)(，|,)?)*(\d+)(\.?)(\d*)(亿|千万|百万|十万|万|千|百|十)?)元'
-    soupcontent = re.sub('<.+>|\n | ', '', str(soup))
-    soupcontent = re.sub('<.+?>', '', soupcontent)
+    #pat_money = '((?![百千万佰仟萬亿億])[零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬亿億幺]+(元|角|分))|((\d*)(，|,)?)*(\d+)(\.?)(\d*)(亿|千万|百万|十万|万|千|百|十)?元'
+    pat_money = '((?![百千万佰仟萬亿億])(零|一|二|三|四|五|六|七|八|九|十|百|千|万|〇|壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|佰|仟|萬|亿|億|幺)+(元)(零|一|二|三|四|五|六|七|八|九|十|百|千|万|〇|壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|佰|仟|萬|亿|億|幺)?(角)?(零|一|二|三|四|五|六|七|八|九|十|百|千|万|〇|壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|佰|仟|萬|亿|億|幺)?(分)?)|((\d*)(，|,)?)*(\d+)(\.?)(\d*)(亿|千万|百万|十万|万|千|百|十)?元'
+    soupcontent = re.sub('<.+>|\n | ', '', soup.get_text())
     soupcontent = re.sub('=\d+', '', soupcontent) # For 250247.html
     soupcontent = re.sub('编码：\d+', '', soupcontent)
     section1 = str(soup.find(id = 'SectionCode_1'))

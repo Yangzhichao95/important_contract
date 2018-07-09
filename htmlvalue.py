@@ -60,8 +60,8 @@ def execute():
     f = open('D:/Tianchi/data/FDDC_announcements_company_name_20180531.json','r',encoding="utf-8")
     Company = json.load(f)
     df = pd.DataFrame(columns = ['公告id','甲方','乙方','项目名称','合同名称','合同金额上限','合同金额下限','联合体成员'])
-    #path = 'D:/Tianchi/data/round1_train_20180518/重大合同/html/'
-    path = 'D:/Tianchi/data/FDDC_announcements_round1_test_a_20180605/重大合同/html/'
+    path = 'D:/Tianchi/data/round1_train_20180518/重大合同/html/'
+    #path = 'D:/Tianchi/data/FDDC_announcements_round1_test_b_20180708/重大合同/html/'
     i = 0
     lst = []
     #lst_int = []
@@ -104,11 +104,11 @@ def execute():
     df['合同金额上限'] = money_up_all
     df['合同金额下限'] = money_low_all
     df['联合体成员'] = refine_output_partyb(combo_all)
-    df.to_csv('D:/Tianchi/data/hetong.txt', sep = '\t', index = False, encoding = 'utf-8')
-    #writer = pd.ExcelWriter('Save_key_value.xlsx')
-    #df.to_excel(writer, 'page_1', float_format = '%.5f', index = False,
-    #           header = False, encoding = 'utf-8')
-    #writer.save()
+    #df.to_csv('D:/Tianchi/data/hetong1.txt', sep = '\t', index = False, encoding = 'utf-8')
+    writer = pd.ExcelWriter('Save_key_value.xlsx')
+    df.to_excel(writer, 'page_1', float_format = '%.5f', index = False,
+               header = False, encoding = 'utf-8')
+    writer.save()
     
 
 if __name__ == '__main__':
