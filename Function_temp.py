@@ -156,7 +156,7 @@ def refine_output_partyb(partyb):
     partyb = [re.sub('（', '(', x) for x in partyb]
     partyb = [re.sub('）', ')', x) for x in partyb]
     partyb = [re.sub('\(.*\)', '', x) for x in partyb]
-    partyb = [re.sub('\d', '', x) for x in partyb]
+    partyb = [re.sub('\d|公司全资|全资', '', x) for x in partyb]
     # For some case
     partyb = [re.sub('\)|）', '', x) for x in partyb]
     return (partyb)
@@ -167,11 +167,11 @@ def tiejian_key_value(soup):
     # 只匹配中国铁建
     soupcontent = re.sub('<.+>|\n|\s', '', str(soup))
     soupcontent = re.sub('<.+?>', '', soupcontent)
-    content_split = re.split('一、|二、|三、|四、|五、|六、|七、|八、|九、|十、|\d、本|\d.本公司', soupcontent)
+    content_split = re.split('一、本|二、本|三、本|四、本|五、本|六、本|七、本|八、本|九、本|十、本|\d、本|\d.本公司', soupcontent)
     if type(content_split) is list:
         content_split.pop(0)
     pat_partya = '公司收到(.+?)(发出的)?中标通知书'
-    pat_partyb = '(子公司|、|及|和)([\w|（|）|\(|\)]+?)(公司)'
+    pat_partyb = '(所属子公司|下属子公司|所属|下属|子公司|、|及|和)([\w|（|）|\(|\)]+?)(公司)'
     pat_project = '中标(.+?)(，|。|；)'
     pat_money = '((\d*)(，|,)?)*(\d+)(\.?)(\d*) *(亿|惩|千万|百万|十万|万|千|百|十)?元'
     ob_partya = []

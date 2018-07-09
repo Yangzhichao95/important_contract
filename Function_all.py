@@ -193,7 +193,7 @@ def find_partyb(full_name, content):
             else:
                 result = re.sub('\w+子公司', '', partyb_raw.group(1) + partyb_raw.group(2))
                 lb.append(result)
-        elif reg_two and re.search('和|与|合同',reg_two.group()) is None:
+        elif reg_two and re.search('和|与|合同|合资',reg_two.group()) is None:
             if  re.search('(乙方|承包人|承包方|卖方|中标人)(：|是|为|\)|）)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content):
                 partyb_raw = re.search('(乙方|承包人|承包方|卖方|中标人)(：|是|为|\)|）)?(\n)?([\w|\(|\)|（|）|\-|\.]+?)(公司)', content)
             else:
@@ -226,11 +226,11 @@ def tiejian_key(soup):
     # 只匹配中国铁建
     soupcontent = re.sub('<.+>|\n|\s', '', str(soup))
     soupcontent = re.sub('<.+?>', '', soupcontent)
-    content_split = re.split('一、|二、|三、|四、|五、|六、|七、|八、|九、|十、|\d、本|\d.本公司', soupcontent)
-    if type(content_split) is list:
+    content_split = re.split('一、本|二、本|三、本|四、本|五、本|六、本|七、本|八、本|九、本|十、本|\d、本|\d.本公司', soupcontent)
+    if len(content_split) > 1:
         content_split.pop(0)
     pat_partya = '公司收到(.+?)(发出的)?中标通知书'
-    pat_partyb = '(子公司|、|及|和)([\w|（|）|\(|\)]+?)(公司)'
+    pat_partyb = '(所属子公司|下属子公司|所属|下属|子公司|、|及|和)([\w|（|）|\(|\)]+?)(公司)'
     ob_partya = []
     ob_partyb = []
     ob_combo = []
@@ -331,7 +331,7 @@ def match_key(soup, Company):
     combo = []
     # 先找乙方关键词
     # 甲方结尾可为(公司|局|院|馆|委员会|集团|室|部|中心|银行|[A-Za-z|\-]+)
-    soupcontent = re.sub('本公司|我公司|占公司|对公司|是公司|影响公司|为公司|项目公司|后公司|提升公司|上述公司|及公司', '', soupcontent)
+    soupcontent = re.sub('本公司|我公司|占公司|对公司|是公司|影响公司|为公司|项目公司|后公司|提升公司|上述公司|及公司|与公司', '', soupcontent)
     lb = find_partyb(full_name, soupcontent)
     soupcontent = re.sub('控股子公司|子公司', '', soupcontent)
     #if len(lb) <= 1:
@@ -339,7 +339,10 @@ def match_key(soup, Company):
     if len(lb) == 0:
         partyb.append(full_name)
     else:
-        partyb.append(lb[0])
+        if re.search('与|和', lb[0]):
+            partyb.append(lb[0][(re.search('与|和', lb[0]).start()+1):])
+        else:
+            partyb.append(lb[0])
     if re.search('联合体|联合中标|分别收到|丙方|共同', soupcontent):
         # 如果联合体存在
         content_split = re.split('\n|，|。', soupcontent)
@@ -351,9 +354,9 @@ def match_key(soup, Company):
                 break
             if re.search('联合体|联合中标|分别收到|丙方|共同', content):
                 loc = content.index(re.search('联合体|联合中标|分别收到|丙方|共同', content).group())
-                combo_raw = re.findall('(与|和|、)([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|室|部|中心|银行)', content[:loc])
+                combo_raw = re.findall('(与|和|及|、)“?([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|室|部|中心|银行)', content[:loc])
                 combo_raw = [x[1] + x[2] for x in combo_raw]
-                combo_raw = [x for x in combo_raw if len(x) > 5]
+                combo_raw = [x for x in combo_raw if len(x) > 5 and x != partyb[0]]
                 combo.append('、'.join(combo_raw))
                 break
     if len(combo) == 0:
