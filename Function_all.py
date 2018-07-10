@@ -354,7 +354,7 @@ def match_key(soup, Company):
                 break
             if re.search('联合体|联合中标|分别收到|丙方|共同', content):
                 loc = content.index(re.search('联合体|联合中标|分别收到|丙方|共同', content).group())
-                combo_raw = re.findall('(与|和|及|、)“?([\w|\(|\)|（|）|\-|\.]+?)(公司|局|院|馆|委员会|室|部|中心|银行)', content[:loc])
+                combo_raw = re.findall('(与|和|、)“?([\w|\(|\)|（|）|\-|\.]+)(公司|局|院|馆|委员会|室|部|中心|银行)', content[:loc])
                 combo_raw = [x[1] + x[2] for x in combo_raw]
                 combo_raw = [x for x in combo_raw if len(x) > 5 and x != partyb[0]]
                 combo.append('、'.join(combo_raw))
